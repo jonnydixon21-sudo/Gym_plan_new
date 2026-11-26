@@ -15,7 +15,7 @@ await p.fill('[data-tg="T:kcal"]','3200');await p.waitForTimeout(100);
 const v2=await p.evaluate(()=>['T:p','T:f','T:c'].map(k=>+document.querySelector(`[data-tg="${k}"]`).value));
 ok('calories drive carbs only',v2[0]===Math.round(lb)&&v2[1]===Math.round(lb*0.3)&&v2[2]===Math.round((3200-4*v2[0]-9*v2[1])/4),v2.join());
 ok('protein/fat read-only with formula on',await p.evaluate(()=>document.querySelector('[data-tg="T:p"]').readOnly));
-await p.click('#tg-fit');await p.waitForTimeout(800);
+await p.click('#tg-fit');await p.waitForTimeout(800);await p.evaluate(()=>{const e=document.getElementById('fitpop');if(e&&!e.hidden){console.log('pop:',e.innerText.replace(/\n+/g,' | '));e.hidden=true}});
 const after=await p.evaluate(()=>({r:fitReport(),msg:document.getElementById('tg-msg').textContent,tg:PLAN.T,rule:planDoc().macroRule}));
 console.log('after',JSON.stringify({kcal:after.r.kcal,p:after.r.p,c:after.r.c,f:after.r.f}),after.msg);
 ok('targets saved with formula',after.tg.kcal===3200&&after.tg.p===Math.round(lb)&&after.rule===true);

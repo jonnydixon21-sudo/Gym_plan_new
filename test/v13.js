@@ -19,6 +19,8 @@ await p.check('[data-asg="night"]');await p.fill('[data-ast="night"]','03:00');a
 await p.check('[data-asg="off"]');await p.fill('[data-ast="off"]','16:00');await p.dispatchEvent('[data-ast="off"]','change');
 await p.uncheck('[data-asg="day"]');
 await p.click('#med-save');await p.waitForTimeout(400);
+// adding the meal to days that were already on target: they go over, so the can't-fit pop-up shows
+console.log('pop:',await p.evaluate(()=>{const e=document.getElementById('fitpop');if(e&&!e.hidden){e.hidden=true;return 'shown'}return 'none'}));
 console.log('day T:',await rows('day','T'));console.log('n1 T:',await rows('n1','T'));console.log('n2 R:',await rows('n2','R'));console.log('off T:',await rows('off','T'));
 console.log('label:',await p.$eval('#meal-d_sk .usedin',e=>e.textContent));
 // new meal
