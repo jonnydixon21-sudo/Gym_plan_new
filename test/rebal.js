@@ -25,6 +25,6 @@ ok('told what changed',/rebalanced/.test(after.toast));
 const snap=await p.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(MEALS).map(([k,m])=>[k,m.items.map(i=>i[1])]))));
 await p.evaluate(id=>medOpen(id),pick.id);await p.waitForTimeout(150);await p.uncheck('#med-rebal');await p.fill(`[data-ma="${pick.i}"]`,String(pick.a-20));await p.click('#med-save');await p.waitForTimeout(600);await p.evaluate(()=>{const e=document.getElementById('fitpop');if(e&&!e.hidden){console.log('pop:',e.innerText.replace(/\n+/g,' | '));e.hidden=true}});
 ok('untick: only this meal changes',await p.evaluate(([s,id])=>{const o=JSON.parse(s);return Object.entries(MEALS).every(([k,m])=>k===id||JSON.stringify(m.items.map(i=>i[1]))===JSON.stringify(o[k]))},[snap,pick.id]));
-await p.evaluate(()=>goTo('training'));await p.evaluate(()=>{document.querySelector('[data-fold="past"]').open=true});
+await p.evaluate(()=>goTo('training','gym'));await p.evaluate(()=>{document.querySelector('[data-fold="past"]').open=true});
 ok('header says Past sessions and Last 7 label',await p.evaluate(()=>document.querySelector('[data-fold="past"] summary').innerText.trim().toLowerCase()==='past sessions'&&/Last 7/i.test(document.querySelector('.last7').textContent)));
 console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

@@ -9,23 +9,23 @@ const vis=sel=>p.evaluate(s=>{const e=document.querySelector(s);return !!e&&e.of
 // tick off the first meal today
 const first=await p.evaluate(async()=>{const r=rowsFor(dayInfo(TODAY)).filter(r=>MEALS[r[1]]);if(!r.length)return null;const c={date:TODAY,eaten:{[r[0][1]]:true},extras:[]};await saveFood(TODAY,c);return MEALS[r[0][1]].m});
 await p.click('#tab-nutrition');await p.waitForTimeout(400);
-ok('opens on Nutrition home',await vis('#food-home')&&!(await vis('#nut-head')));
-const home=await p.evaluate(()=>document.getElementById('food-home').innerText);
-ok("today's intake with rings",/today's intake/i.test(home)&&(await p.$$('#food-home .ring')).length===4);
+ok('opens on Nutrition home',await vis('#hub-nutrition')&&!(await vis('[data-hubhead="nutrition"]')));
+const home=await p.evaluate(()=>document.getElementById('hub-nutrition').innerText);
+ok("today's intake with rings",/today's intake/i.test(home)&&(await p.$$('#hub-nutrition .ring')).length===4);
 ok('meals listed with status',first?new RegExp(first.replace(/[&()]/g,'.')+'\\s*Completed').test(home)&&/Pending/.test(home):true,home.slice(0,300).replace(/\n/g,' | '));
-ok('tiles',(await p.$$eval('[data-nut]',e=>e.map(x=>x.dataset.nut).join()))==='foods,meals,shop,prep,targets');
-ok('no chips on Nutrition',(await p.$$('#sec-nutrition [data-sub]')).length===0);
+ok('tiles',(await p.$$eval('#hub-nutrition [data-sub]',e=>e.map(x=>x.dataset.sub.split(':')[1]).join()))==='foods,meals,shop,prep,targets');
+ok('no chips on Nutrition',(await p.$$('#sec-nutrition .subtabs')).length===0);
 for(const [k,pane,title] of [['meals','#food-meals','Meals'],['foods','#food-lib','Food library'],['shop','#food-shop','Shopping list'],['prep','#food-prep','Meal prep'],['targets','#pane-targets','Targets']]){
-  await p.click(`[data-nut="${k}"]`);await p.waitForTimeout(300);
-  ok(k+' opens as its own page',await vis(pane)&&!(await vis('#food-home'))&&await vis('#nut-back')&&(await p.$eval('#nut-title',e=>e.textContent))===title);
+  await p.click(`#hub-nutrition [data-sub="nutrition:${k}"]`);await p.waitForTimeout(300);
+  ok(k+' opens as its own page',await vis(pane)&&!(await vis('#hub-nutrition'))&&await vis('[data-hubback="nutrition"]')&&(await p.$eval('[data-hubhead="nutrition"] .hubtitle',e=>e.textContent))===title);
   if(k==='foods'){await p.screenshot({path:SH+'nut-foods.png'});
     await p.fill('#fl-q','banana');await p.waitForTimeout(150);const t=await p.$eval('#fl-list',e=>e.innerText);ok('food search',/banana/i.test(t)&&!/Almond butter/.test(t),t.slice(0,120).replace(/\n/g,' | '));await p.fill('#fl-q','');
     ok('your foods and removed items here',await p.evaluate(()=>!!document.querySelector('#food-lib #myfoods')&&!!document.querySelector('#food-lib #rmmeals')&&!document.getElementById('hidden-card')));}
-  if(k==='prep'){await p.goBack();await p.waitForTimeout(300);ok('phone back goes to Nutrition',await vis('#food-home'))}
-  else{await p.click('#nut-back');await p.waitForTimeout(300);ok(k+': back button goes to Nutrition',await vis('#food-home'))}}
+  if(k==='prep'){await p.goBack();await p.waitForTimeout(300);ok('phone back goes to Nutrition',await vis('#hub-nutrition'))}
+  else{await p.click('[data-hubback="nutrition"]');await p.waitForTimeout(300);ok(k+': back button goes to Nutrition',await vis('#hub-nutrition'))}}
 // ticking a meal on Today updates the Nutrition home
 await p.evaluate(async()=>{const r=rowsFor(dayInfo(TODAY)).filter(r=>MEALS[r[1]]);if(r[1]){const c={...(D.food[TODAY]||{}),date:TODAY};c.eaten={...(c.eaten||{}),[r[1][1]]:true};await saveFood(TODAY,c)}});await p.waitForTimeout(400);
-ok('updates when food is ticked',await p.evaluate(()=>(document.getElementById('food-home').innerText.match(/Completed/g)||[]).length>=2));
+ok('updates when food is ticked',await p.evaluate(()=>(document.getElementById('hub-nutrition').innerText.match(/Completed/g)||[]).length>=2));
 await p.screenshot({path:SH+'nut-home.png',fullPage:true});
 await p.click('#nut-today');await p.waitForTimeout(300);ok("intake header opens Today",await vis('#view-today'));
 // settings

@@ -8,7 +8,7 @@ await p.evaluate(async()=>{const k=TEMPLATES.find(t=>t.title==='Legs C').key,pro
   await db.doc('prefs/swaps').set({map:{'Smith machine split squat':'Static lunges','Pec deck':{to:'Cable fly',from:TODAY,until:addDays(TODAY,20),reason:'stalled'}}})});
 await p.reload();await p.waitForTimeout(1200);
 ok('old global swap removed, 4-week swap kept',await p.evaluate(()=>!D.exswaps['Smith machine split squat']&&!!D.exswaps['Pec deck']),await p.evaluate(()=>JSON.stringify(D.exswaps)));
-await p.evaluate(()=>goTo('training'));await p.click('.tw button[data-tpl="Legs C"]');await p.waitForTimeout(300);
+await p.evaluate(()=>goTo('training','gym'));await p.click('.tw button[data-tpl="Legs C"]');await p.waitForTimeout(300);
 ok('preview shows what was saved',await p.evaluate(()=>/Smith machine split squat/.test(document.getElementById('w-tpls').innerText)&&!/Static lunges/.test(document.getElementById('w-tpls').innerText)));
 await p.click('#pv-start');await p.waitForTimeout(300);ok('workout uses saved exercise',await p.evaluate(()=>W.exercises[1].name==='Smith machine split squat'));
 console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

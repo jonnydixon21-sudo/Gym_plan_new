@@ -4,7 +4,7 @@ let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
-await p.evaluate(()=>goTo('training'));await p.waitForTimeout(200);
+await p.evaluate(()=>goTo('training','gym'));await p.waitForTimeout(200);
 await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);
 await p.click('[data-swapex="0"]');await p.waitForTimeout(200);
 await p.click('#sw-any');await p.keyboard.type('R');await p.waitForTimeout(200);

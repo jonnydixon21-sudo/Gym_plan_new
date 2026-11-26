@@ -11,7 +11,7 @@ const days=await p.evaluate(async()=>{const g=addDays(TODAY,-3),r=addDays(TODAY,
   await db.doc('runs/c3').set({date:r,kind:'easy',km:5,secs:1500,created:Date.now()});await db.doc('runs/c4').set({date:both,kind:'speed',km:4,secs:1200,created:Date.now()});
   const wd=pd(addDays(TODAY,-2)).getDay();await saveRugbyWeekly(wd,{kind:'training',at:'19:00',noGym:true,from:addDays(TODAY,-30)});return {g,r,both,rug:addDays(TODAY,-2)}});
 await p.waitForTimeout(600);
-await p.evaluate(()=>goTo('training'));await p.evaluate(()=>{document.querySelector('[data-fold="past"]').open=true});await p.waitForTimeout(150);
+await p.evaluate(()=>goTo('training','gym'));await p.evaluate(()=>{document.querySelector('[data-fold="past"]').open=true});await p.waitForTimeout(150);
 await p.click('#cal-open');await p.waitForTimeout(400);
 const st=await p.evaluate(d=>{const t=x=>{const el=document.querySelector(`[data-cald="${x}"]`);return el?el.getAttribute('style')||el.className:'none'};return {g:t(d.g),r:t(d.r),both:t(d.both),rug:t(d.rug),off:t(addDays(TODAY,-1)),title:document.getElementById('cal-title').textContent,months:document.querySelectorAll('.calm').length}},days);
 console.log(JSON.stringify(st));

@@ -4,7 +4,7 @@ const SH=(process.env.SHOTS||'/tmp/gym-shots/');
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1})).newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
-await p.evaluate(()=>goTo('training'));await p.evaluate(()=>{document.getElementById('split-card').open=true});await p.waitForTimeout(100);
+await p.evaluate(()=>goTo('training','gym'));await p.evaluate(()=>{document.getElementById('split-card').open=true});await p.waitForTimeout(100);
 await p.click('.spcog[data-edit="Back"]');await p.waitForTimeout(300);
 await p.fill('.ed-n[data-i="0"]','');await p.click('.ed-n[data-i="0"]');await p.keyboard.type('Rear cable flys');await p.waitForTimeout(1200);
 ok('saved without pressing anything',await p.evaluate(()=>tplOf('Back').ex[0].name==='Rear cable flys'));

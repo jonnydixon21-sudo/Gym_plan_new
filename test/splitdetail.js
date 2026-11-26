@@ -4,7 +4,7 @@ let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
-await p.evaluate(()=>goTo('training'));await p.waitForTimeout(200);
+await p.evaluate(()=>goTo('training','gym'));await p.waitForTimeout(200);
 await p.evaluate(()=>{document.getElementById('split-card').open=true});await p.waitForTimeout(100);
 await p.click('#sp-detail');await p.waitForTimeout(200);
 const info=await p.evaluate(()=>{const el=document.getElementById('sd-page');return {vis:!el.hidden,ws:[...el.querySelectorAll('.sdw h3')].map(h=>h.textContent),inputs:el.querySelectorAll('input,select,textarea').length,first:[...el.querySelectorAll('.sdw')][0].innerText}});

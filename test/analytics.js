@@ -20,7 +20,7 @@ await p.evaluate(async()=>{const S=(kg,r,n=2,rir)=>Array(n).fill(0).map(()=>rir=
   for(let i=0;i<21;i++)await saveCheckin(addDays(TODAY,-20+i),{weight:87.2+i*0.02,...(i%7===0?{waist:84+i*0.05}:{})});
 });
 await p.waitForTimeout(800);
-await p.evaluate(()=>goTo('body'));await p.click('[data-sub="progress:lifts"]');await p.waitForTimeout(400);
+await p.evaluate(()=>goTo('body'));await p.evaluate(()=>show('progress','lifts'));await p.waitForTimeout(400);
 const lifts=await p.$$eval('details.lift summary',e=>e.map(x=>x.innerText.replace(/\n+/g,' | ')));console.log('   lifts:',lifts);
 ok('pulldown says go up',lifts.some(x=>/Neutral-grip lat pulldown/.test(x)&&/Go up/.test(x)));
 ok('hack squat flags fatigue',lifts.some(x=>/Hack squat/.test(x)&&/Fatigue/.test(x)));
@@ -39,25 +39,25 @@ const eff=await p.$eval('#effort-card',e=>e.innerText.replace(/\n+/g,' | '));con
 ok('effort tables by sleep and shift',/By sleep/i.test(eff)&&/Under 6h sleep/.test(eff)&&/Night shift/.test(eff));
 await p.screenshot({path:SH+'lifts.png',fullPage:true});
 // readiness
-await p.click('#tab-training');await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(300);const rd=await p.$eval('#ready-card',e=>e.innerText.replace(/\n+/g,' | '));console.log('   ready:',rd);
+await p.click('#tab-training');await p.evaluate(()=>show('training','gym'));await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(300);const rd=await p.$eval('#ready-card',e=>e.innerText.replace(/\n+/g,' | '));console.log('   ready:',rd);
 ok('readiness shows fatigue and reasons',/Fatigue: (Moderate|High)/.test(rd)&&/Sleep averaging 5.5h/.test(rd)&&/Back/.test(rd));
 await p.screenshot({path:SH+'ready.png'});
 // library: edit a guessed exercise
-await p.click('[data-sub="training:library"]');await p.waitForTimeout(200);
+await p.evaluate(()=>show('training','library'));await p.waitForTimeout(200);
 await p.click('#lib-new');await p.fill('#lib-name','Cable crunch');await p.selectOption('#lib-p','Core');await p.click('#lib-save');await p.waitForTimeout(300);
 ok('new exercise saved',await p.evaluate(()=>exInfo('Cable crunch').p==='Core'&&knownExercises().includes('Cable crunch')));
 await p.fill('#lib-q','hammer');await p.waitForTimeout(150);await p.click('[data-libedit="hammer curl"]');await p.click('[data-libs="Back"]');await p.click('#lib-save');await p.waitForTimeout(300);
 ok('edit adds indirect muscle',await p.evaluate(()=>exInfo('Hammer curl').s.includes('Back')&&exInfo('Hammer curl').src==='you'));
 await p.screenshot({path:SH+'library.png'});
 // live workout RIR + difficulty
-await p.click('[data-sub="training:gym"]');await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);
+await p.evaluate(()=>show('training','gym'));await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);
 await p.fill('[data-f="kg"][data-ex="0"][data-s="0"]','60');await p.fill('[data-f="reps"][data-ex="0"][data-s="0"]','9');await p.selectOption('select[data-ex="0"][data-s="0"]','2');await p.click('[data-ok="0:0"]');
 await p.screenshot({path:SH+'rir.png'});
 await p.click('#w-finish');await p.waitForTimeout(500);await p.click('#w-done [data-rate="8"]');await p.waitForTimeout(400);
 const saved=await p.evaluate(()=>{const w=D.workouts.find(w=>w.date===TODAY&&w.source==='app');return w?JSON.stringify({rpe:w.rpe,set:w.exercises[0].sets[0]}):null});
 ok('RIR and difficulty saved with the session',saved&&/"rpe":8/.test(saved)&&/"rir":2/.test(saved),saved);
 // weight dashboard
-await p.evaluate(()=>goTo('body'));await p.click('[data-sub="progress:body"]');await p.waitForTimeout(300);
+await p.evaluate(()=>goTo('body'));await p.evaluate(()=>show('progress','body'));await p.waitForTimeout(300);
 const st=await p.$$eval('#prog-stats .stat',e=>e.map(x=>x.innerText.replace(/\n+/g,' ')));console.log('   body stats:',st);
 ok('7-day, 28-day, rate %, waist shown',st.some(x=>/7-day average/i.test(x)&&/vs the 7 days before/.test(x))&&st.some(x=>/28-day trend/i.test(x))&&st.some(x=>/Weekly rate/i.test(x)&&/%/.test(x)&&/\+0\.1% to \+0\.25%/.test(x))&&st.some(x=>/Waist/i.test(x)&&/cm/.test(x)));
 ok('target line drawn',await p.$$eval('#ch-weight path[stroke-dasharray]',e=>e.length)===1);

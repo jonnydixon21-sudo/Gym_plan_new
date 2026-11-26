@@ -8,7 +8,7 @@ const ex=await p.evaluate(()=>{const t=tplOf(TEMPLATES[0].title);return [TEMPLAT
 await p.evaluate(async ex=>{const S=(kg,r,n=2)=>Array(n).fill(0).map(()=>({kg,reps:r}));
   const days=[-20,-15,-10,-5];for(let i=0;i<days.length;i++)await db.doc('workouts/h'+i).set({date:addDays(TODAY,days[i]),title:ex[0],source:'app',exercises:[{name:ex[1],sets:S(60,8)},{name:ex[2],sets:S(20,10)},{name:'Cable crunch',sets:[{kg:0,reps:12}]}]})},ex);
 await p.waitForTimeout(600);
-await p.evaluate(()=>goTo('training'));await p.waitForTimeout(200);
+await p.evaluate(()=>goTo('training','gym'));await p.waitForTimeout(200);
 await p.click(`.tw button[data-tpl="${ex[0]}"]`);await p.click('#pv-start');await p.waitForTimeout(300);
 ok('rating card gone from live workout',await p.evaluate(()=>!/How hard was this session/.test(document.getElementById('w-live').innerText)));
 ok('Done abs? button at bottom',await p.evaluate(()=>{const a=document.getElementById('w-abs-tog'),f=document.querySelector('[data-finish]');return !!a&&!!f&&!!(a.compareDocumentPosition(f)&Node.DOCUMENT_POSITION_FOLLOWING)}));

@@ -7,10 +7,12 @@ await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);co
 ok('five tabs (Settings is the cog on Today)',(await p.$$eval('.tabs .tab',e=>e.filter(x=>x.offsetParent!==null).map(x=>x.innerText.trim()).join(',')))==='Today,Training,Progress,Nutrition,Schedule');
 for(const t of ['today','training','progress','nutrition','schedule','settings']){
   if(t==='settings'){await p.click('#tab-today');await p.click('#hero-cog')}else await p.click('#tab-'+t);await p.waitForTimeout(250);
-  const subs=await p.$$eval(`#sec-${t} [data-sub]`,e=>e.map(x=>x.dataset.sub));
+  const subs=await p.$$eval(`#sec-${t} [data-sub]`,e=>e.filter(x=>!x.hidden).map(x=>x.dataset.sub));
   const vis=await p.evaluate(t=>[...document.querySelectorAll('section.top')].filter(s=>!s.hidden).map(s=>s.id).join(),t);
   ok(`tab ${t} shows only its section`,vis==='sec-'+t,vis+' subs:'+subs.join(' '));
-  for(const sb of subs){await p.click(`[data-sub="${sb}"]`);await p.waitForTimeout(250);
+  ok(`  ${t}: opens on its home page`,!['training','progress','nutrition','schedule'].includes(t)||await p.evaluate(t=>!document.getElementById('hub-'+t).hidden,t));
+  for(const sb of subs){if(await p.$(`[data-hubback="${t}"]`)&&await p.isVisible(`[data-hubback="${t}"]`)){await p.click(`[data-hubback="${t}"]`);await p.waitForTimeout(250)}
+    await p.click(`[data-sub="${sb}"]`);await p.waitForTimeout(250);
     const shown=await p.evaluate(t=>[...document.querySelectorAll('#sec-'+t+' > .view, #sec-'+t+' > section, #sec-'+t+' > div.view')].filter(x=>!x.hidden).map(x=>x.id),t);
     const h=await p.evaluate(t=>document.getElementById('sec-'+t).innerText.length,t);
     ok(`  ${sb}: one pane, has content`,shown.length===1&&h>60,shown.join()+' len '+h);
