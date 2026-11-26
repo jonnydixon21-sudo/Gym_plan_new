@@ -33,6 +33,7 @@ jobs:
             src="${pair%%:*}"; repo="${pair#*:}"
             git clone -q "https://x-access-token:$T@github.com/jonnydixon21-sudo/$repo.git" "/tmp/$repo"
             cp "$src"/* "/tmp/$repo"/
+            echo "Built from jonnydixon21-sudo/Gym_plan_new@${GITHUB_SHA} by ${WHO}" > "/tmp/$repo/built-from.txt"
             cd "/tmp/$repo"
             if [ -z "$(git status --porcelain)" ]; then echo "$repo already up to date"; cd "$GITHUB_WORKSPACE"; continue; fi
             git add -A; git commit -q -m "${MSG:-Update app}" -m "From gym_plan_new@${GITHUB_SHA::7} by $WHO"; git push -q origin HEAD
