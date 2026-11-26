@@ -1,0 +1,96 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+const before=await p.evaluate(()=>[...Array(16)].map((_,i)=>{const d=addDays("2026-11-02",i),x=dayInfo(d);return x.label+x.type}).join());
+ok('default pattern unchanged',before.startsWith('Day shiftT,Day shiftT,Night 1T,Night 2R,Off · after nightsT,OffT,OffT,OffT,Day shiftT'),before.slice(0,120));
+ok('default runs kept',await p.evaluate(()=>dayInfo("2026-11-04").run&&dayInfo("2026-11-08").run&&!dayInfo("2026-11-02").run));
+await p.evaluate(()=>goTo('schedule','shifts'));await p.waitForTimeout(300);
+ok('intro text',(await p.textContent('#rota-intro')).includes('2 days, 2 nights, 4 off'),await p.textContent('#rota-intro'));
+ok('personal is default: 8-day cycle from today',await p.evaluate(()=>L.rotaView===undefined&&document.querySelectorAll('#rota .rd').length===8&&document.querySelector('#rota .rd').dataset.rd===TODAY&&getComputedStyle(document.getElementById('rota')).gridTemplateColumns.split(' ').length===4));
+await p.screenshot({path:SH+'rota-personal.png'});
+await p.click('[data-rv="roll"]');await p.waitForTimeout(150);
+ok('rolling: 7 days from today',await p.evaluate(()=>{const b=[...document.querySelectorAll('#rota .rd')];return b.length===7&&b[0].dataset.rd===TODAY}));
+await p.screenshot({path:SH+'rota-roll.png'});
+await p.click('[data-rv="week"]');await p.waitForTimeout(200);
+ok('week: Mon to Sun',await p.evaluate(()=>{const b=[...document.querySelectorAll('#rota .rd')];return b.length===7&&pd(b[0].dataset.rd).getDay()===1&&pd(b[6].dataset.rd).getDay()===0}));
+await p.click('[data-wk="1"]');await p.waitForTimeout(200);
+ok('next week',await p.evaluate(()=>document.querySelector('#rota .rd').dataset.rd===addDays(mondayOf(TODAY),7)),await p.textContent('#rota-wk'));
+await p.click('#rota .rd:nth-child(3)');await p.waitForTimeout(200);
+ok('select day in next week keeps week',await p.evaluate(()=>ROTA_SEL===addDays(mondayOf(TODAY),9)&&document.querySelector('#rota .rd').dataset.rd===addDays(mondayOf(TODAY),7)));
+await p.screenshot({path:SH+'rota-week.png'});
+await p.click('[data-wk="0"]');await p.reload();await p.waitForTimeout(900);await p.evaluate(()=>goTo('schedule','shifts'));await p.waitForTimeout(200);
+ok('remembers week view',await p.evaluate(()=>L.rotaView==='week'&&!document.getElementById('rota-nav').hidden));
+await p.click('[data-rv="month"]');await p.waitForTimeout(200);
+const mon=await p.evaluate(()=>({cells:document.querySelectorAll('#rota-month .mc:not(.empty)').length,today:!!document.querySelector('#rota-month .mc.today'),barHidden:document.getElementById('rota').hidden,card:getComputedStyle(document.getElementById("rota-card")).display==="none",kinds:[...new Set([...document.querySelectorAll('#rota-month .mc:not(.empty)')].map(c=>c.className.match(/k-(\w+)/)[1]))].join()}));
+ok('month view',mon.cells===30&&mon.today&&mon.barHidden&&mon.card&&mon.kinds.split(',').length===3,JSON.stringify(mon));
+await p.screenshot({path:SH+'rota-month.png'});
+await p.click('[data-mo="1"]');await p.waitForTimeout(150);ok('next month',(await p.textContent('#rota-month .mnav b')).includes('December'));
+await p.click('[data-rv="custom"]');await p.waitForTimeout(200);
+ok('custom shows 8 days',await p.evaluate(()=>document.querySelectorAll('#rota-custom li').length===8));
+await p.screenshot({path:SH+'rota-custom.png',fullPage:true});
+// build 4 on 4 off nights via preset then tweak
+await p.click('[data-cpre="2"]');await p.waitForTimeout(150);
+await p.fill('#cp-start','2026-11-09');await p.dispatchEvent('#cp-start','change');await p.waitForTimeout(150);
+await p.click('#cp-add');await p.waitForTimeout(100);
+await p.click('[data-cprm="8"]');await p.waitForTimeout(100);
+await p.click('[data-cptr="7:R"]');await p.waitForTimeout(100);
+ok('summary',(await p.textContent('#rota-custom')).includes('4 nights, 4 off, repeating'));
+await p.click('#cp-save');await p.waitForTimeout(400);
+ok('after save shows Personal view',await p.evaluate(()=>L.rotaView==='personal'&&!document.getElementById('rota').hidden&&document.getElementById('rota-custom').hidden&&document.querySelectorAll('#rota .rd').length===8),await p.textContent('#rota-intro'));
+const after=await p.evaluate(()=>[...Array(9)].map((_,i)=>{const d=addDays("2026-11-09",i),x=dayInfo(d);return x.label+x.type}).join());
+ok('pattern applied',after==='Night 1T,Night 2R,Night 3R,Night 4R,Off · after nightsT,OffT,OffT,OffR,Night 1T',after);
+ok('no default runs on custom',await p.evaluate(()=>![...Array(8)].some((_,i)=>dayInfo(addDays("2026-11-09",i)).run)));
+ok('meal rows for night',await p.evaluate(()=>rowsFor(dayInfo("2026-11-11")).length>2));
+const prep=await p.evaluate(()=>["day","night","off"].map(m=>{const x=prepPlan(m);return m+":"+x.cook+">"+x.days.join("|")}).join(" "));
+ok('prep uses blocks',await p.evaluate(()=>["night","off"].every(m=>{const x=prepPlan(m),isK=d=>{const s=dayInfo(d).slot;return m==="night"?(s==="n1"||s==="n2"):(s==="off"||s==="off1")};return x.days.length===4&&x.cook===x.days[0]&&x.days.every(isK)&&!isK(addDays(x.days[0],-1))&&x.cook>=TODAY})),prep);
+ok('saved to prefs',await p.evaluate(async()=>{const s=await db.doc('prefs/rota').get();return s.exists&&s.data().days.length===8}));
+await p.reload();await p.waitForTimeout(900);
+ok('persists after reload',await p.evaluate(()=>dayInfo("2026-11-12").label==='Night 4'&&PATTERN.length===8&&CYCLE_START==='2026-11-09'));
+await p.evaluate(()=>goTo('schedule','shifts'));await p.click('[data-rv="roll"]');await p.waitForTimeout(200);
+ok('intro updated',(await p.textContent('#rota-intro')).includes('4 nights, 4 off'));
+await p.screenshot({path:SH+'rota-roll2.png'});
+// odd length pattern, Mon-Fri days
+await p.click('[data-rv="custom"]');await p.click('[data-cpre="3"]');await p.click('#cp-save');await p.waitForTimeout(300);
+ok('7-day Mon-Fri',await p.evaluate(()=>{const m=mondayOf(TODAY);return PATTERN.length===7&&dayInfo(m).label==='Day shift'&&dayInfo(addDays(m,5)).label==='Off'&&dayInfo(addDays(m,12)).label==='Off'}));
+ok('today renders',await p.evaluate(()=>{goTo('today');return document.getElementById('sec-today').innerText.length>200}));
+// back to my rota
+await p.evaluate(()=>goTo('schedule','shifts'));await p.click('[data-rv="custom"]');await p.click('[data-cpre="0"]');await p.click('#cp-save');await p.waitForTimeout(300);
+ok('restore default + runs back',await p.evaluate(()=>isDefaultRota()&&dayInfo("2026-11-04").run&&dayInfo("2026-11-04").label==='Night 1'));
+// drag in the custom editor: hold ↑ on day 1 and drag it to position 4
+await p.click('[data-rv="custom"]');await p.waitForTimeout(150);
+const order=()=>p.evaluate(()=>RP_DRAFT.days.map(d=>d.type[0]).join(''));
+ok('start order',(await order())==='ddnnoooo',await order());
+await p.click('[data-cpdn="0"]');await p.waitForTimeout(100);ok('arrow moves one',(await order())==='ddnnoooo'.replace(/^dd/,'dd'));
+await p.click('[data-cpup="2"]');await p.waitForTimeout(100);ok('arrow up moves night up',(await order())==='dndnoooo',await order());
+await p.click('[data-cpup="2"]');await p.waitForTimeout(100);
+const drag=async(sel,dy)=>{const bx=await (await p.$(sel)).boundingBox();const x=bx.x+bx.width/2,y=bx.y+bx.height/2;await p.mouse.move(x,y);await p.mouse.down();await p.waitForTimeout(450);
+  for(let k=1;k<=12;k++){await p.mouse.move(x,y+dy*k/12);await p.waitForTimeout(25)}await p.waitForTimeout(100);return {x,y}};
+const h=await (await p.$('#rota-custom li')).boundingBox();
+await p.evaluate(()=>window.scrollTo(0,document.querySelector('#rota-custom li').getBoundingClientRect().top+scrollY-120));await p.waitForTimeout(150);
+await drag('[data-cpup="0"]',h.height*2+20);
+ok('lifted while held',await p.evaluate(()=>!!document.querySelector('#rota-custom li.lifted')&&document.querySelectorAll('#rota-custom li.shiftable').length===7));
+await p.screenshot({path:SH+'drag-lift.png'});
+await p.mouse.up();await p.waitForTimeout(400);
+ok('dropped 2 places down, no extra click',(await order())==='dndnoooo',await order());
+ok('styles cleared',await p.evaluate(()=>!document.querySelector('li.lifted,li.shiftable')&&!document.body.classList.contains('dragging')));
+// Day plans: drag a row up 2
+await p.evaluate(()=>goTo('schedule','days'));await p.waitForTimeout(250);
+const rows=()=>p.evaluate(()=>PED.rows.map(r=>r[0]).join(','));const r0=await rows();
+await p.evaluate(()=>{const b=document.querySelector('[data-pup="3"]');window.scrollTo(0,b.getBoundingClientRect().top+scrollY-650)});await p.waitForTimeout(150);
+const c=async n=>{const bb=await (await p.$('#days-ed ol li:nth-child('+n+')')).boundingBox();return bb.y+bb.height/2};const dyy=(await c(2))-(await c(4))-12;
+await drag('[data-pup="3"]',dyy);await p.mouse.up();await p.waitForTimeout(400);
+const r1=await rows();const a0=r0.split(','),a1=r1.split(',');
+ok('day plan row moved up 2',a1[1]===a0[3]&&a1[2]===a0[1]&&a1[3]===a0[2],r0+' => '+r1);
+// short tap still moves one
+await p.click('[data-pdn="0"]');await p.waitForTimeout(150);ok('tap still moves one',(await rows()).split(',')[1]===a1[0]);
+// Today: gym row gone, run button at the bottom next to ate something
+await p.evaluate(()=>goTo('today'));await p.waitForTimeout(200);
+ok('no gym row on today',await p.evaluate(()=>!document.querySelector('[data-tlg]')&&!/Mark gym session done/.test(document.getElementById('sec-today').innerText)));
+ok('run button beside ate-something',await p.evaluate(()=>{const f=document.querySelector('.eatfoot');const b=f&&f.querySelector('[data-tlrun]'),d=f&&f.querySelector('details.extra');if(!b||!d)return false;const rb=b.getBoundingClientRect(),rd=d.getBoundingClientRect();return Math.abs(rb.top-rd.top)<30&&rb.left>rd.left}));
+await p.evaluate(()=>document.querySelector('.eatfoot').scrollIntoView({block:'center'}));await p.screenshot({path:SH+'today-foot.png'});
+// dark mode screenshot of month
+await p.emulateMedia({colorScheme:'dark'});await p.evaluate(()=>goTo('schedule','shifts'));await p.click('[data-rv="month"]');await p.waitForTimeout(200);await p.screenshot({path:SH+'rota-month-dark.png'});
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

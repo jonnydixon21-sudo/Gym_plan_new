@@ -1,0 +1,14 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
+await p.evaluate(()=>goTo('food','meals'));await p.waitForTimeout(300);
+ok('option shown in Meals',await p.evaluate(()=>!!document.getElementById('aa-on')&&document.getElementById('aa-on').checked&&!!document.getElementById('aa-fit')));
+await p.screenshot({path:(process.env.SHOTS||'/tmp/gym-shots/')+'autoadj.png'});
+await p.uncheck('#aa-on');await p.waitForTimeout(300);ok('turning off is saved',await p.evaluate(()=>planDoc().autoAdjust===false));
+await p.evaluate(()=>medOpen(Object.keys(MEALS).find(id=>!MEALS[id].solo)));await p.waitForTimeout(150);ok('meal editor follows the setting',await p.evaluate(()=>!document.getElementById('med-rebal').checked));await p.evaluate(()=>medClose());
+await p.reload();await p.waitForTimeout(1000);await p.evaluate(()=>goTo('food','meals'));await p.waitForTimeout(200);ok('remembered',await p.evaluate(()=>!document.getElementById('aa-on').checked));
+await p.click('#aa-fit');await p.click('#aa-fit');await p.waitForTimeout(900);
+ok('fit now works',await p.evaluate(()=>/Meals fitted/.test(document.getElementById('gtoast').textContent)&&fitReport().kcal<=150),await p.evaluate(()=>document.getElementById('gtoast').textContent));
+console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

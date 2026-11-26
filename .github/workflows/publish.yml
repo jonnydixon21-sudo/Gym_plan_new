@@ -1,0 +1,40 @@
+# Every push to main builds both copies and publishes them to the live sites.
+# Needs a repository secret called DEPLOY_TOKEN: a GitHub fine-grained token with
+# "Contents: Read and write" on jonnydixon21-sudo/Gym-plan-v11.1 and jonnydixon21-sudo/Gym-plan-blank.
+# Without it this step is skipped and tools/publish.sh has to be run by hand.
+name: Publish app
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency: publish
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for token
+        id: tok
+        env: { T: "${{ secrets.DEPLOY_TOKEN }}" }
+        run: |
+          if [ -z "$T" ]; then echo "::warning::DEPLOY_TOKEN secret not set, so nothing was published. Add it in Settings → Secrets and variables → Actions."; echo "ok=no" >> "$GITHUB_OUTPUT"; else echo "ok=yes" >> "$GITHUB_OUTPUT"; fi
+      - name: Build
+        if: steps.tok.outputs.ok == 'yes'
+        run: bash tools/build.sh
+      - name: Publish both copies
+        if: steps.tok.outputs.ok == 'yes'
+        env:
+          T: ${{ secrets.DEPLOY_TOKEN }}
+          MSG: ${{ github.event.head_commit.message }}
+          WHO: ${{ github.actor }}
+        run: |
+          git config --global user.name "$WHO"; git config --global user.email "$WHO@users.noreply.github.com"
+          for pair in "web:Gym-plan-v11.1" "web-trial:Gym-plan-blank"; do
+            src="${pair%%:*}"; repo="${pair#*:}"
+            git clone -q "https://x-access-token:$T@github.com/jonnydixon21-sudo/$repo.git" "/tmp/$repo"
+            cp "$src"/* "/tmp/$repo"/
+            cd "/tmp/$repo"
+            if [ -z "$(git status --porcelain)" ]; then echo "$repo already up to date"; cd "$GITHUB_WORKSPACE"; continue; fi
+            git add -A; git commit -q -m "${MSG:-Update app}" -m "From gym_plan_new@${GITHUB_SHA::7} by $WHO"; git push -q origin HEAD
+            echo "$repo published"; cd "$GITHUB_WORKSPACE"
+          done

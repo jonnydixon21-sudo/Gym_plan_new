@@ -1,0 +1,33 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
+await p.evaluate(()=>goTo('training'));await p.waitForTimeout(200);
+await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);
+await p.click('[data-swapex="0"]');await p.waitForTimeout(200);
+await p.click('#sw-any');await p.keyboard.type('R');await p.waitForTimeout(200);
+const list=await p.$$eval('.acbox button',e=>e.map(x=>x.textContent));
+ok('typing R shows a list',list.length>=2,list.slice(0,8).join(' | '));
+ok('names starting with R come first',/^R/i.test(list[0])&&list.slice(0,3).every(n=>/^R/i.test(n)),list.slice(0,4).join(' | '));
+ok('no native datalist attached',await p.evaluate(()=>!document.getElementById('sw-any').getAttribute('list')));
+await p.keyboard.type('omanian');await p.waitForTimeout(150);
+const l2=await p.$$eval('.acbox button',e=>e.map(x=>x.textContent));ok('narrows as you type',l2.length>=1&&l2.every(n=>/romanian/i.test(n)),l2.join(' | '));
+await p.evaluate(()=>document.querySelector('.acbox').scrollIntoView({block:'center'}));await p.screenshot({path:SH+'exac.png'});
+await p.click('.acbox button');await p.waitForTimeout(150);
+ok('tap fills the box and closes list',await p.evaluate(()=>/Romanian deadlift/i.test(document.getElementById('sw-any').value)&&!document.querySelector('.acbox')));
+await p.click('[data-pickany="0"]');await p.waitForTimeout(300);
+ok('swap uses picked name',await p.evaluate(()=>/Romanian deadlift/i.test(W.exercises[0].name)));
+// word-start match: "curl" finds "Lying leg curl"
+await p.fill('#w-addnew','');await p.click('#w-addnew');await p.keyboard.type('curl');await p.waitForTimeout(200);
+const l3=await p.$$eval('.acbox button',e=>e.map(x=>x.textContent));ok('matches any word too',l3.some(n=>/leg curl/i.test(n)),l3.slice(0,6).join(' | '));
+await p.keyboard.press('Escape');
+await p.evaluate(()=>endSession());await p.waitForTimeout(200);
+// workout editor
+await p.evaluate(()=>{document.getElementById('split-card').open=true});await p.click('.spcog');await p.waitForTimeout(300);
+await p.fill('.ed-n[data-i="0"]','');await p.click('.ed-n[data-i="0"]');await p.keyboard.type('hack');await p.waitForTimeout(200);
+ok('editor suggests too',await p.$$eval('.acbox button',e=>e.some(x=>/hack squat/i.test(x.textContent))));
+await p.click('.acbox button');await p.waitForTimeout(150);
+ok('editor takes picked name',await p.evaluate(()=>/hack squat/i.test(EDIT.ex[0].name)),await p.evaluate(()=>EDIT.ex[0].name));
+console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

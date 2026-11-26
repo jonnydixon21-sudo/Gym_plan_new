@@ -1,0 +1,22 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+const p=await ctx.newPage();await p.clock.setFixedTime(new Date('2026-11-12T10:00:00'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);
+const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+console.log('today type:',await p.evaluate(()=>dayInfo(TODAY).type+' '+plannedWorkout(TODAY)));
+const g=await p.$('[data-gotrain]');console.log('train link:',g?await g.innerText():'none');
+await p.locator('[data-gotrain]').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'gotrain.png'});
+// tick box still works
+await p.check('.gotrain + input[type=checkbox]');await p.waitForTimeout(300);console.log('ticked:',await p.$eval('.gotrain + input',e=>e.checked));
+await p.click('[data-gotrain]');await p.waitForTimeout(400);
+console.log('tab:',await p.evaluate(()=>L.tab),'| preview:',await p.$eval('.pv-t',e=>e.textContent));
+await p.click('#pv-start');await p.waitForTimeout(300);
+await p.fill('textarea.wnote','Warm up shoulders first');
+await p.fill('.wex[data-ex="0"] input.wnote','increase weight by 0.5kg');await p.waitForTimeout(900);
+await p.screenshot({path:SH+'wnotes.png'});
+await p.click('#w-cancel');await p.click('#w-cancel');await p.waitForTimeout(300);
+await p.reload();await p.waitForTimeout(900);await p.evaluate(()=>goTo('gym'));
+await p.click('.tw button[data-tpl]');await p.waitForTimeout(200);console.log('preview notes:',await p.$$eval('.pvnote',e=>e.map(x=>x.textContent)));
+await p.click('#pv-start');await p.waitForTimeout(300);console.log('live notes:',await p.$eval('textarea.wnote',e=>e.value),'|',await p.$eval('.wex[data-ex="0"] input.wnote',e=>e.value));
+console.log('errors:',errs);await b.close()})();

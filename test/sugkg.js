@@ -1,0 +1,17 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
+await p.evaluate(async()=>{await db.doc('workouts/s1').set({date:addDays(TODAY,-4),title:'Upper',source:'app',exercises:[{name:'Neutral-grip lat pulldown',sets:[{kg:60,reps:8},{kg:60,reps:7}]}]})});await p.waitForTimeout(500);
+await p.evaluate(()=>goTo('training'));await p.click('.tw button[data-tpl="Upper"]');await p.click('#pv-start');await p.waitForTimeout(300);
+const i0=await p.evaluate(()=>{const el=document.querySelector('[data-f="kg"][data-ex="0"][data-s="0"]');return {v:el.value,ph:el.placeholder}});
+ok('last time weight shown grey, box empty',i0.v===''&&i0.ph==='60',JSON.stringify(i0));
+await p.fill('[data-f="reps"][data-ex="0"][data-s="0"]','9');await p.click('[data-ok="0:0"]');await p.waitForTimeout(200);
+ok('untyped weight uses the grey suggestion',await p.evaluate(()=>W.exercises[0].sets[0].kg==='60'));
+const i1=await p.evaluate(()=>{const el=document.querySelector('[data-f="kg"][data-ex="0"][data-s="1"]');return {v:el.value,ph:el.placeholder}});
+ok('next set suggestion grey, box empty',i1.v===''&&i1.ph==='60',JSON.stringify(i1));
+await p.fill('[data-f="kg"][data-ex="0"][data-s="1"]','62.5');await p.fill('[data-f="reps"][data-ex="0"][data-s="1"]','8');await p.click('[data-ok="0:1"]');await p.waitForTimeout(200);
+ok('typed weight wins',await p.evaluate(()=>W.exercises[0].sets[1].kg==='62.5'));
+await p.screenshot({path:(process.env.SHOTS||'/tmp/gym-shots/')+'sugkg.png'});
+console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

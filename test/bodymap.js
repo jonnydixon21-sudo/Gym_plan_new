@@ -1,0 +1,24 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();
+for(const scheme of ['dark','light']){const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,colorScheme:scheme})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+await p.evaluate(async()=>{const S=n=>Array(n).fill({kg:50,reps:10});
+  await db.doc('workouts/a').set({date:TODAY,title:'Upper',source:'app',rpe:9,exercises:[{name:'Neutral-grip lat pulldown',sets:S(4)},{name:'Chest-supported row',sets:S(4)}]});
+  await db.doc('workouts/b').set({date:addDays(TODAY,-1),title:'Shoulders & Arms',source:'app',exercises:[{name:'Cable lateral raise',sets:S(3)},{name:'Hammer curl',sets:S(3)},{name:'Cable triceps pushdown',sets:S(3)}]});
+  await db.doc('workouts/c').set({date:addDays(TODAY,-5),title:'Legs A',source:'app',exercises:[{name:'Hack squat',sets:S(3)},{name:'Lying leg curl',sets:S(3)}]});});
+await p.waitForTimeout(500);await p.evaluate(()=>goTo('gym'));await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(300);
+const mf=await p.evaluate(()=>{const m=muscleFatigue();return Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Math.round(v.f*100)+'% '+v.st]))});
+if(scheme==='dark')console.log('   ',JSON.stringify(mf));
+ok(scheme+': back (main muscle today) is red',/Just trained/.test(mf.Back));
+ok(scheme+': biceps worked only as a secondary today is less fatigued than back',parseInt(mf.Biceps)<parseInt(mf.Back));
+ok(scheme+': legs 5 days ago are rested',/Rested/.test(mf.Quads)&&/Rested/.test(mf.Hamstrings));
+ok(scheme+': never-trained calves rested',/Rested/.test(mf.Calves));
+ok(scheme+': body map drawn with coloured muscles',await p.$$eval('#ready-card .bodymap svg',e=>e.length)===2&&await p.$$eval('#ready-card [data-m]',e=>e.length)>=20);
+const rows=await p.$$eval('.mrow',e=>e.map(x=>x.innerText.replace(/\n+/g,' ')));if(scheme==='dark')console.log('   ',rows.slice(0,5));
+ok(scheme+': list sorted most fatigued first',/^Back/.test(rows[0]));
+await p.locator('#ready-card').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'bodymap-'+scheme+'.png'});
+ok(scheme+': no page errors',!errs.length,errs.join());await p.close()}
+console.log('FAILS',fails);await b.close();process.exit(fails?1:0)})();

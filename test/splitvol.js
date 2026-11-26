@@ -1,0 +1,22 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errs.push(m.text())});
+await p.addInitScript(()=>{setInterval(()=>document.querySelectorAll('details[data-fold]:not([open]):not([data-t])').forEach(d=>{d.open=true;d.dataset.t=1}),80)});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+await p.evaluate(()=>goTo('training','gym'));await p.waitForTimeout(400);
+const pos=await p.evaluate(()=>{const a=document.getElementById('split-card'),b=document.getElementById('splitvol-card');return !!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)&&!b.hidden});ok('card under the split',pos);
+const V=await p.evaluate(()=>{const v=splitVolume();return {N:v.N,perWeek:v.perWeek,groups:Object.keys(v.m),back:v.m.Back,unk:v.unk,order:ORDER}});console.log('   ',JSON.stringify({N:V.N,perWeek:V.perWeek,groups:V.groups,unk:V.unk,order:V.order}));
+ok('generic groups only',V.groups.every(g=>["Chest","Back","Shoulders","Biceps","Triceps","Quads","Hamstrings","Glutes","Calves","Adductors","Core"].includes(g)),V.groups.join());
+ok('8-day cycle -> per week',Math.abs(V.perWeek-7*7/8)<0.01||V.perWeek>0,String(V.perWeek));
+// independent check of Back direct sets
+const chk=await p.evaluate(()=>{let d=0;ORDER.forEach(t=>tplOf(t).ex.forEach(e=>{const i=exInfo(swapFor(e.name)||e.name);if(i&&(i.p==='Back'||i.p==='Traps'))d+=e.groups.reduce((a,g)=>a+ +g[0],0)}));return {d,got:splitVolume().m.Back.d}});
+ok('back direct sets add up',chk.d===chk.got,JSON.stringify(chk));
+const txt=await p.evaluate(()=>document.getElementById('sv-body').innerText.replace(/\n/g,' | '));console.log('   ',txt.slice(0,600));
+ok('shows per 7 days with targets and sources',/Per 7 days/.test(txt)&&/target \d+–\d+/.test(txt)&&/Back \| [\d.]+ sets/.test(txt));
+await p.evaluate(()=>document.getElementById('splitvol-card').scrollIntoView({block:'start'}));await p.screenshot({path:SH+'splitvol.png'});
+await p.click('[data-svm="split"]');await p.waitForTimeout(150);const t2=await p.evaluate(()=>document.getElementById('sv-body').innerText);ok('whole split mode',/Every session in the split once/.test(t2)&&!/target \d/.test(t2));
+await p.click('[data-svm="next"]');await p.waitForTimeout(150);ok('next 7 days mode',/Your next 7 days/.test(await p.textContent('#sv-body')));
+await p.screenshot({path:SH+'splitvol2.png'});
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

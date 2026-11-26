@@ -1,0 +1,14 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
+await p.evaluate(()=>goTo('training','gym'));await p.waitForTimeout(300);
+await p.evaluate(()=>{const b=[...document.querySelectorAll('.tw button[data-tpl]')].find(x=>x.dataset.tpl==='Upper');b.click()});await p.waitForTimeout(300);
+const chips=await p.$$eval('.pvmus .mchip',e=>e.map(x=>x.innerText.replace(/\s+/g,' ')));console.log('   ',chips.join(' | '));
+const want=await p.evaluate(()=>{const m={};tplOf('Upper').ex.forEach(e=>{const i=exInfo(swapFor(e.name)||e.name);if(i){const g=GEN_OF[i.p]||i.p;m[g]=(m[g]||0)+targets(e.groups).length}});return m});
+ok('chips match main-muscle sets',chips.length===Object.keys(want).length&&chips.every(c=>{const [g,n]=[c.replace(/ \d+$/,''),+c.match(/\d+$/)[0]];return want[g]===n}),JSON.stringify(want));
+ok('each exercise tagged',await p.evaluate(()=>[...document.querySelectorAll('.pv-list li')].every(li=>li.querySelector('.mtag'))));
+await p.evaluate(()=>document.querySelector('.pv').scrollIntoView({block:'start'}));await p.screenshot({path:SH+'pvmus.png'});
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

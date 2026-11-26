@@ -1,0 +1,31 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+const plan=()=>p.evaluate(()=>[...Array(10)].map((_,i)=>{const d=addDays(TODAY,i);return WD(d)+':'+(plannedWorkout(d)||'-')}).join(' '));
+console.log('   before:',await plan());
+const first=await p.evaluate(()=>[...Array(10)].map((_,i)=>addDays(TODAY,i)).find(d=>dayType(d)==='T'));
+await p.evaluate(()=>goTo('shifts'));await p.click(`.rd[data-rd="${first}"]`);await p.waitForTimeout(200);
+ok('session picker shown',!!await p.$('#rs-sel'),await p.$eval('#rs-sel',e=>e.value));
+await p.selectOption('#rs-sel','Legs B');await p.waitForTimeout(400);
+const after=await plan();console.log('   after picking Legs B on',first,':',after);
+ok('picked day uses Legs B',await p.evaluate(d=>plannedWorkout(d),first)==='Legs B');
+const nxt=await p.evaluate(d=>{for(let k=1;k<10;k++){const x=addDays(d,k);if(dayType(x)==='T')return plannedWorkout(x)}},first);
+ok('next training day carries on with the split',nxt==='Chest & Back',nxt);
+ok('timeline shows it',/Legs B/.test(await p.$eval('#rota-title',e=>e.textContent)));
+await p.screenshot({path:SH+'session.png'});
+await p.evaluate(()=>goTo('gym'));await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(200);
+const wn=await p.$eval('#w-next',e=>e.textContent);ok('Gym "next" follows the pick',/Legs B/.test(wn),wn);
+ok('split shows Legs B as next',/Legs B/.test(await p.$eval('#split-card li:has(.pill)',e=>e.innerText)));
+if(first===await p.evaluate(()=>TODAY)){await p.evaluate(()=>goTo('today'));ok('Today shows it',/Legs B/.test(await p.$eval('#eat',e=>e.innerText)))}
+await p.reload();await p.waitForTimeout(900);ok('survives reload',await p.evaluate(d=>plannedWorkout(d),first)==='Legs B');
+await p.evaluate(()=>goTo('shifts'));await p.click(`.rd[data-rd="${first}"]`);await p.click('#rs-reset');await p.waitForTimeout(300);
+ok('back to split order',(await plan())===(await p.evaluate(()=>window.__b||null))||!/Legs B/.test((await plan()).split(' ')[0]),await plan());
+// meals tab no longer shows foods / removed lists, settings does
+await p.evaluate(()=>goTo('meals'));const mt=await p.$eval('#food-meals',e=>e.innerText);
+ok('Meals tab has no My foods / Removed lists',!/My foods|Removed meals|Removed from your meals/.test(mt));
+ok('+ New meal and + New food still on Meals',!!await p.$('#food-meals #nmeal-new')&&!!await p.$('#food-meals #nfood-new'));
+ok('lists live in Settings',!!await p.$('#view-settings #myfoods')&&!!await p.$('#view-settings #rmmeals'));
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

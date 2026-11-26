@@ -1,0 +1,11 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);
+const out=await p.evaluate(()=>{const r=[];for(let i=2;i<10;i++){const d=addDays("2026-11-02",i),inf=dayInfo(d);let t={kcal:0,p:0,c:0,f:0};const ids=rowsFor(inf).map(x=>x[1]).filter(x=>MEALS[x]);ids.forEach(id=>{const m=mealMac(id,d);t.kcal+=m.kcal;t.p+=m.p;t.c+=m.c;t.f+=m.f});r.push([d,inf.label,inf.type,plannedWorkout(d)||"-",ids.join(","),`${t.kcal}kcal ${t.p}P ${t.c}C ${t.f}F`])}return r});
+out.forEach(r=>console.log(r.join(" | ")));
+console.log('shop list:',await p.evaluate(()=>{const t=totals();return Object.entries(t.o).map(([k,v])=>k+":"+Math.round(v)).join(" ")}));
+await p.screenshot({path:SH+'today3.png'});
+await p.evaluate(()=>goTo('food'));await p.waitForTimeout(500);await p.screenshot({path:SH+'food3.png'});
+console.log('ERR',errs);await b.close()})();

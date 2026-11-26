@@ -1,0 +1,35 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+const id=await p.evaluate(()=>rowsFor(dayInfo(VIEW)).map(r=>r[1]).find(i=>MEALS[i]&&MEALS[i].items.some(it=>it[0]==='basmati'||it[0]==='pot')));
+const ri=await p.evaluate(id=>MEALS[id].items.findIndex(it=>it[0]==='basmati'||it[0]==='pot'),id);
+const before=await p.evaluate(id=>({m:mealMac(id,VIEW),shop:dayNeeds(VIEW)}),id);
+console.log('   meal',id,'item',ri,'before',JSON.stringify(before.m));
+await p.evaluate(id=>{OPEN_MEAL.add(id);renderDay()},id);
+await p.click(`[data-more="${id}"]`);await p.waitForTimeout(150);await p.click(`[data-adjopen="${id}"]`);await p.waitForTimeout(200);
+const plan=await p.$eval(`[data-adj="${id}:${ri}"]`,e=>e.value);
+await p.fill(`[data-adj="${id}:${ri}"]`,String(Math.round(+plan*1.5)));await p.locator('.adjp').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'adjust.png'});
+await p.click(`[data-adjsave="${id}"]`);await p.waitForTimeout(400);
+const after=await p.evaluate(id=>({m:mealMac(id,VIEW),shop:dayNeeds(VIEW),tom:mealMac(id,addDays(VIEW,8)),plan:MEALS[id].items.map(x=>x[1]).join('/')}),id);
+console.log('   after',JSON.stringify(after.m),'| plan items',after.plan);
+ok('meal macros go up for today',after.m.c>before.m.c&&after.m.kcal>before.m.kcal);
+ok('plan itself unchanged',after.plan===await p.evaluate(id=>MEALS[id].items.map(x=>x[1]).join('/'),id)&&!(await p.evaluate(id=>JSON.stringify(D.plan&&D.plan.meals&&D.plan.meals[id]||null),id)).includes('basmati'));
+ok('same meal on another day unaffected',JSON.stringify(after.tom)===JSON.stringify(before.m));
+const k=await p.evaluate((a)=>MEALS[a[0]].items[a[1]][0],[id,ri]);ok('shop for today uses the new amount',after.shop[k]>before.shop[k]);
+ok('card says changed for this day',/changed for this day only/.test(await p.$eval('#eat',e=>e.innerText)));
+ok('day totals target bar reflects it',await p.evaluate(()=>!!document.querySelector('#mbars')));
+await p.reload();await p.waitForTimeout(900);ok('survives reload',(await p.evaluate(id=>mealMac(id,VIEW).c,id))===after.m.c);
+await p.evaluate(id=>{OPEN_MEAL.add(id);renderDay()},id);await p.click(`[data-adjreset="${id}"]`);await p.waitForTimeout(300);
+ok('back to plan',JSON.stringify(await p.evaluate(id=>mealMac(id,VIEW),id))===JSON.stringify(before.m));
+// folds
+const panes={today:'view-today',body:'view-progress',lifts:'view-lifts',photos:'view-photos',coach:'view-coach',run:'view-run',library:'view-library',shifts:'food-shifts',days:'food-days',settings:'view-settings',meals:'food-meals'};
+for(const [k,id] of Object.entries(panes)){await p.evaluate(k=>goTo(k),k);await p.waitForTimeout(120);
+  const r=await p.evaluate(id=>{const el=document.getElementById(id);const sec=el.closest('section.top')||el.parentNode;const cards=[...sec.querySelectorAll('.card')].filter(c=>c.offsetParent!==null||c.tagName==='DETAILS');
+    return cards.filter(c=>c.closest('#'+id)||c.contains(el)||el.contains(c)).map(c=>c.tagName==='DETAILS'?'D:'+(c.querySelector('summary')||{}).innerText.split('\n')[0]+(c.open?'(open)':''):'C:'+((c.querySelector('h2')||{}).innerText||c.id||'card').slice(0,22))},id);
+  console.log('   '+k+':',r.join(' | '))}
+await p.evaluate(()=>goTo('today'));const plain=await p.evaluate(()=>[...document.querySelectorAll('#view-today > .card, #view-today > details.card')].map(c=>c.tagName+':'+(c.id||((c.querySelector('h2')||{}).innerText||'').slice(0,14))));
+ok('Today: macros and plan stay open cards, others are dropdowns',plain.includes('DIV:macro-card')&&plain.some(x=>/^DIV:Today's plan/i.test(x))&&plain.some(x=>x==='DETAILS:'||/DETAILS/.test(x)),plain.join(' '));
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

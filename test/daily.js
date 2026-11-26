@@ -1,0 +1,38 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+await p.click('#tab-today');await p.waitForTimeout(200);
+const pos=await p.evaluate(()=>{const d=document.querySelector('[data-fold="basics"]'),m=document.getElementById('macro-card');return {inToday:!!d.closest('#sec-today'),before:m.contains(d)&&!!(d.compareDocumentPosition(document.getElementById('mbars'))&Node.DOCUMENT_POSITION_FOLLOWING),closed:!d.open,title:d.querySelector('summary').innerText.replace(/\n/g,' ')}});
+ok('Daily targets fold on Today above Macros',pos.inToday&&pos.before&&pos.closed&&/Daily targets/i.test(pos.title)&&/0\/4|\d\/4/.test(pos.title),JSON.stringify(pos));
+ok('gone from Progress',await p.evaluate(()=>!document.querySelector('#sec-progress #habits')&&!/Basics/.test(document.getElementById('sec-progress').innerText)));
+await p.click('[data-fold="basics"] summary');await p.waitForTimeout(200);
+ok('four default targets',(await p.$$('#habits .habit')).length===4);
+await p.screenshot({path:SH+'daily.png'});
+await p.click('#dt-open');await p.waitForTimeout(150);
+await p.fill('[data-dtv="1"]','12000');await p.fill('[data-dtv="3"]','7.5');
+await p.selectOption('#dt-new','water');await p.waitForTimeout(100);
+await p.selectOption('#dt-new','custom');await p.waitForTimeout(100);await p.fill('[data-dtn="5"]','Stretch 10 min');
+await p.click('[data-dtrm="2"]');await p.waitForTimeout(100);
+await p.screenshot({path:SH+'daily-edit.png',fullPage:true});
+await p.click('#dt-save');await p.waitForTimeout(300);
+const hs=await p.$$eval('#habits .habit',e=>e.map(x=>x.innerText.replace(/\n/g,' ')));console.log('   ',hs.join(' | '));
+ok('targets updated',hs.length===5&&/12,000 a day/.test(hs[1])&&/7.5 hours/.test(hs[2])&&/4 litres/.test(hs[3])&&/Stretch 10 min/.test(hs[4])&&!hs.some(x=>/meal plan/.test(x)));
+ok('score out of 5',/\/5/.test(await p.textContent('#habit-score')));
+ok('steps auto uses new target',await p.evaluate(async()=>{D.habits[VIEW]={date:VIEW,stepsN:11000,sleepH:7.6};return !autoHabit(VIEW,'steps')&&autoHabit(VIEW,'sleep')}));
+await p.click('#habits input[data-h^="c_"]');await p.waitForTimeout(300);ok('custom tick saves',await p.evaluate(()=>Object.keys(D.habits[VIEW]||{}).some(k=>k.startsWith('c_')&&D.habits[VIEW][k])));
+await p.reload();await p.waitForTimeout(900);ok('persists',await p.evaluate(()=>HABITS.length===5&&HABITS[4].n==='Stretch 10 min'));
+// bad value blocked
+await p.click('#tab-today');await p.evaluate(()=>{document.querySelector('[data-fold="basics"]').open=true});await p.click('#dt-open');await p.fill('[data-dtv="1"]','50');await p.click('#dt-save');await p.waitForTimeout(150);ok('bad value blocked',/Steps: pick a number/.test(await p.textContent('#dt-msg')));
+await p.click('#dt-reset');await p.waitForTimeout(300);ok('reset to default',await p.evaluate(()=>HABITS.length===4&&HABITS[1].d==='10,000 a day'));
+// goals: 93kg visible and editable
+await p.evaluate(()=>goTo('progress','body'));await p.evaluate(()=>{document.getElementById('goals-card').open=true});await p.waitForTimeout(200);
+const gtxt=await p.textContent('#goals-body');ok('93kg goal shows',/Bulk to 93kg/.test(gtxt),gtxt.slice(0,120));
+await p.click('[data-gedit="gw"]');await p.waitForTimeout(150);ok('edit form prefilled',(await p.inputValue('#gf-kg'))==='93');
+await p.fill('#gf-kg','94');await p.fill('#gf-by','2027-06-30');await p.click('#gf-save');await p.waitForTimeout(300);
+ok('goal changed',/Bulk to 94kg by 30 Jun/.test(await p.textContent('#goals-body'))&&/To 94kg/i.test(await p.textContent('#prog-stats')),await p.textContent('#goals-body'));
+await p.reload();await p.waitForTimeout(900);ok('goal persists',await p.evaluate(()=>goalList().length===1&&goalList()[0].target===94&&goalList()[0].startKg===87.2));
+await p.evaluate(()=>goTo('progress','body'));await p.evaluate(()=>{document.getElementById('goals-card').open=true});await p.locator('#goals-card').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'goals2.png'});
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

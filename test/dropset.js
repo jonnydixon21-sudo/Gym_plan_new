@@ -1,0 +1,16 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);
+await p.evaluate(()=>goTo('training'));await p.evaluate(()=>{newSession('');W.exercises=[mkEx('Test press',[[3,'7-10']],''),mkEx('Test row',[[3,'7-10']],''),mkEx('Test curl',[[3,'7-10']],'')];W.exercises.forEach(e=>e.sets.forEach(s=>{s.kg='';delete s.auto}));saveLive();renderLive()});await p.waitForTimeout(200);
+const tick=async(ei,si,kg,reps,rir,fail)=>{await p.fill(`[data-f="kg"][data-ex="${ei}"][data-s="${si}"]`,kg);await p.fill(`[data-f="reps"][data-ex="${ei}"][data-s="${si}"]`,reps);if(rir!=null)await p.selectOption(`select[data-f="rir"][data-ex="${ei}"][data-s="${si}"]`,rir);if(fail)await p.check(`[data-sf="fail"][data-ex="${ei}"][data-s="${si}"]`);await p.click(`[data-ok="${ei}:${si}"]`);await p.waitForTimeout(150)};
+const kg=(ei,si)=>p.evaluate(([a,b])=>{const s=W.exercises[a].sets[b];return s.kg||s.sug},[ei,si]);
+await tick(0,0,'35','9','1');ok('9 reps in 7-10: same weight next',await kg(0,1)==='35',await kg(0,1));
+await tick(0,1,'35','7','1');ok('7 reps, 1 RIR: 20% less',await kg(0,2)==='27.5',await kg(0,2));
+await tick(1,0,'35','6','0');ok('6 reps, 0 RIR: 25% less',await kg(1,1)==='26.25',await kg(1,1));
+ok('toast explains',await p.evaluate(()=>/next set down 25%/.test(document.getElementById('w-ss-toast').textContent)));
+await tick(2,0,'40','7',null,true);ok('Failed ticked counts as 0 RIR',await kg(2,1)==='30',await kg(2,1));
+await p.fill('[data-f="kg"][data-ex="2"][data-s="1"]','32');await p.click('[data-ok="2:0"]');await p.waitForTimeout(100);await p.click('[data-ok="2:0"]');await p.waitForTimeout(150);
+ok('weight you typed is not overwritten',await kg(2,1)==='32',await kg(2,1));
+console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

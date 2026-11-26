@@ -1,0 +1,10 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const p=await b.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8795/index.html');await p.waitForTimeout(1500);
+const r=await p.evaluate(async()=>({local:APP_VERSION,remote:await remoteVersion(),bar:document.getElementById('upd-bar').hidden}));
+ok('trial sees itself as up to date',r.remote===r.local&&r.bar===true,JSON.stringify(r));
+await p.goto('http://localhost:8793/index.html');await p.waitForTimeout(1500);
+const m=await p.evaluate(async()=>({local:APP_VERSION,remote:await remoteVersion(),bar:document.getElementById('upd-bar').hidden}));
+ok('main copy up to date',m.remote===m.local&&m.bar===true,JSON.stringify(m));
+console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

@@ -1,0 +1,43 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+const prod={status:1,product:{product_name:"Protein Bar",brands:"Grenade",quantity:"60g",serving_size:"60 g",serving_quantity:60,nutriments:{"energy-kcal_100g":370,proteins_100g:33,carbohydrates_100g:30,fat_100g:15,"energy-kcal_serving":222,proteins_serving:20,carbohydrates_serving:18,fat_serving:9}}};
+(async()=>{const b=await chromium.launch({args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
+const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,permissions:['camera']})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errs.push(m.text())});p.on('dialog',d=>d.accept());
+await p.route('**/world.openfoodfacts.org/**',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(prod)}));
+await p.addInitScript(()=>{window.BarcodeDetector=class{constructor(){this.n=0}async detect(){this.n++;return this.n>2?[{rawValue:"5060123456789"}]:[]}}});
+await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(900);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
+// ---- Today barcode
+await p.evaluate(()=>{document.querySelector('details.extra').open=true});await p.click('#xs-scan');await p.waitForTimeout(1500);
+const vals=await p.evaluate(()=>['x-name','x-kcal','x-p','x-c','x-f'].map(i=>document.getElementById(i).value));console.log('   filled:',vals.join(' | '));
+ok('scan fills 1 serving',vals.join('|')==='Grenade Protein Bar|222|20|18|9');
+await p.fill('#xs-amt','2');await p.waitForTimeout(100);ok('2 servings doubles it',await p.$eval('#x-kcal',e=>e.value)==='444');
+await p.click('[data-xsb="g"]');await p.fill('#xs-amt','30');await p.waitForTimeout(100);ok('by weight 30g',await p.$eval('#x-kcal',e=>e.value)==='111'&&await p.$eval('#x-p',e=>e.value)==='10');
+await p.locator('#xs-out').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'today-scan.png'});
+const before=await p.evaluate(()=>eatenTotals(VIEW).kcal);await p.click('#x-add');await p.waitForTimeout(400);
+ok('added to today',await p.evaluate(()=>eatenTotals(VIEW).kcal)-before===111);
+await p.fill('#xs-code','5060123456789');await p.click('#xs-look');await p.waitForTimeout(300);ok('typed barcode works',/Grenade/.test(await p.$eval('#xs-out',e=>e.innerText)));
+// ---- Gym folds
+await p.evaluate(()=>goTo('gym'));await p.waitForTimeout(200);
+const st=await p.$$eval('#view-gym details[data-fold]',e=>e.map(d=>d.dataset.fold+':'+(d.open?'open':'closed')));console.log('   folds:',st.join(' '));
+ok('start open, others closed',st.includes('start:open')&&st.includes('split:closed')&&st.includes('ready:closed')&&st.includes('past:closed'));
+ok('summaries show next / fatigue',/Next:/.test(await p.$eval('#split-next',e=>e.textContent))&&/Fatigue/.test(await p.$eval('#ready-pill',e=>e.textContent)));
+await p.screenshot({path:SH+'gym-folds.png'});
+await p.click('#split-card summary');await p.click('#w-start summary');await p.waitForTimeout(150);
+await p.reload();await p.waitForTimeout(900);await p.evaluate(()=>goTo('gym'));
+ok('fold state remembered',await p.evaluate(()=>document.getElementById('split-card').open&&!document.getElementById('w-start').open));
+await p.click('#w-start summary');await p.click('.tw button[data-tpl]');await p.waitForTimeout(200);ok('preview works in fold',!!await p.$('.pv-t'));await p.click('#pv-back');
+// ---- injuries
+await p.evaluate(()=>goTo('body'));await p.click('#inj-card summary');await p.click('#inj-add summary');
+await p.fill('#inj-name','Left wrist');await p.fill('#inj-tnote','Use straps, neutral grip');await p.click('#inj-addbtn');await p.waitForTimeout(300);
+await p.click('[data-iopen]');await p.click('[data-ipain="4"]');await p.fill('#inj-note','Sore after pulldowns');await p.click('[data-isave]');await p.waitForTimeout(300);
+const inj=await p.$eval('#inj-body',e=>e.innerText.replace(/\n+/g,' | '));console.log('   inj:',inj.slice(0,260));
+ok('injury logged',/Left wrist/.test(inj)&&/Latest: 4\/10/.test(inj)&&/Use straps/.test(inj)&&(await p.$eval('#inj-pill',e=>e.textContent))==='1 active');
+await p.evaluate(()=>goTo('gym'));await p.evaluate(()=>{document.getElementById('ready-card').open=true});ok('readiness shows injury',/Left wrist · 4\/10/.test(await p.$eval('#ready-body',e=>e.innerText)));
+await p.evaluate(()=>{document.getElementById('w-start').open=true});await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);
+ok('workout shows injury note',/Left wrist.*Use straps/.test(await p.$eval('#w-live',e=>e.innerText.replace(/\n/g,' '))));await p.screenshot({path:SH+'live-inj.png'});
+await p.click('#w-cancel');await p.click('#w-cancel');
+await p.evaluate(()=>goTo('body'));await p.evaluate(()=>{document.getElementById('inj-card').open=true});await p.locator('#inj-card').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'inj.png'});
+await p.click('[data-iopen]');await p.click('[data-iheal]');await p.waitForTimeout(300);ok('mark healed',(await p.$eval('#inj-pill',e=>e.textContent))===''&&/Healed \(1\)/.test(await p.$eval('#inj-body',e=>e.innerText)));
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();
