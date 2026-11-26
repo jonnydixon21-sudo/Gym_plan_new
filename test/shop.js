@@ -8,7 +8,7 @@ await p.addInitScript(()=>{window.__clip='';try{Object.defineProperty(navigator,
 await p.goto(U);await p.waitForTimeout(900);
 const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
 await p.evaluate(()=>goTo('food'));
-ok('chip says Shop',(await p.$eval('[data-sub="nutrition:shop"]',e=>e.textContent))==='Shopping list');
+await p.evaluate(()=>show('nutrition'));ok('Shopping tile on Nutrition',(await p.$eval('[data-nut="shop"] b',e=>e.textContent))==='Shopping');
 await p.evaluate(()=>goTo('food','shop'));await p.waitForTimeout(300);
 ok('8 day chips',(await p.$$eval('#shop-days .pday',e=>e.length))===8);
 ok('none picked at first',(await p.$$eval('#shop-days input:checked',e=>e.length))===0);

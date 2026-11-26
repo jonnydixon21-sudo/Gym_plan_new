@@ -4,9 +4,9 @@ let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n
 (async()=>{const b=await chromium.launch();const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
-ok('six tabs',(await p.$$eval('.tabs .tab',e=>e.map(x=>x.innerText.trim()).join(',')))==='Today,Training,Progress,Nutrition,Schedule,Settings');
+ok('five tabs (Settings is the cog on Today)',(await p.$$eval('.tabs .tab',e=>e.filter(x=>x.offsetParent!==null).map(x=>x.innerText.trim()).join(',')))==='Today,Training,Progress,Nutrition,Schedule');
 for(const t of ['today','training','progress','nutrition','schedule','settings']){
-  await p.click('#tab-'+t);await p.waitForTimeout(250);
+  if(t==='settings'){await p.click('#tab-today');await p.click('#hero-cog')}else await p.click('#tab-'+t);await p.waitForTimeout(250);
   const subs=await p.$$eval(`#sec-${t} [data-sub]`,e=>e.map(x=>x.dataset.sub));
   const vis=await p.evaluate(t=>[...document.querySelectorAll('section.top')].filter(s=>!s.hidden).map(s=>s.id).join(),t);
   ok(`tab ${t} shows only its section`,vis==='sec-'+t,vis+' subs:'+subs.join(' '));

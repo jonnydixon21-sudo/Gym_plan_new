@@ -27,5 +27,5 @@ ok('back to split order',(await plan())===(await p.evaluate(()=>window.__b||null
 await p.evaluate(()=>goTo('meals'));const mt=await p.$eval('#food-meals',e=>e.innerText);
 ok('Meals tab has no My foods / Removed lists',!/My foods|Removed meals|Removed from your meals/.test(mt));
 ok('+ New meal and + New food still on Meals',!!await p.$('#food-meals #nmeal-new')&&!!await p.$('#food-meals #nfood-new'));
-ok('lists live in Settings',!!await p.$('#view-settings #myfoods')&&!!await p.$('#view-settings #rmmeals'));
+ok('lists live in Food library',!!await p.$('#food-lib #myfoods')&&!!await p.$('#food-lib #rmmeals'));
 console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();

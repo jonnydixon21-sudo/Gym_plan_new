@@ -13,7 +13,7 @@ await p.click('#tab-today');await p.waitForTimeout(300);console.log('TODAY:',awa
 await p.evaluate(()=>goTo('food'));await p.evaluate(()=>goTo('food','days'));await p.waitForTimeout(200);console.log('day rows:',await p.$$eval('#days-ed li.edcol',e=>e.length));
 await p.evaluate(()=>goTo('food','shop'));await p.waitForTimeout(200);
 await p.reload();await p.waitForTimeout(1000);console.log('after reload TODAY:',await eat());
-await p.evaluate(()=>goTo('food'));await p.evaluate(()=>{goTo('settings');document.getElementById('hidden-card').open=true});await p.click('[data-mrestore]');await p.waitForTimeout(400);
+await p.evaluate(()=>goTo('food'));await p.evaluate(()=>{goTo('nutrition','foods')});await p.click('[data-mrestore]');await p.waitForTimeout(400);
 await p.click('#tab-today');await p.waitForTimeout(300);console.log('RESTORED:',await eat());
 for(const c of ['shifts','shop','prep']){await p.evaluate(()=>goTo('food'));await p.evaluate(c=>goTo('food',c),c);await p.waitForTimeout(150)}
 console.log('errors:',errs);await b.close()})();

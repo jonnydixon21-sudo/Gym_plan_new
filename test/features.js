@@ -17,7 +17,7 @@ await p.evaluate(()=>goTo('gym'));await p.waitForTimeout(300);
 console.log('lift row:',await p.$eval('#ex-list .ex small',e=>e.textContent));
 await p.evaluate(()=>goTo('body'));
 // text size + theme
-await p.click('#tab-settings');await p.click('[data-z="1.25"]');console.log('zoom:',await p.evaluate(()=>document.documentElement.style.zoom));
+await p.evaluate(()=>show('today'));await p.click('#hero-cog');await p.click('[data-z="1.25"]');console.log('zoom:',await p.evaluate(()=>document.documentElement.style.zoom));
 await p.click('[data-th="light"]');console.log('theme attr:',await p.evaluate(()=>document.documentElement.getAttribute('data-theme')));
 await p.click('[data-th=""]');await p.click('[data-z="1"]');
 // export
@@ -35,7 +35,7 @@ const night=ics.split('BEGIN:VEVENT').slice(1).filter(x=>/T0100/.test(x.match(/D
 const ctx2=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const q=await ctx2.newPage();q.on('dialog',d=>d.accept());q.on('pageerror',e=>errs.push('q:'+e.message));
 await q.addInitScript(()=>{setInterval(()=>document.querySelectorAll('details[data-fold]:not([open]):not([data-t])').forEach(d=>{d.open=true;d.dataset.t=1}),80)});await q.goto(U);await q.waitForTimeout(900);
 console.log('fresh workouts:',await q.evaluate(()=>D.workouts.length));
-await q.click('#tab-settings');await q.setInputFiles('#bk-file',path);await q.waitForTimeout(1800);
+await q.evaluate(()=>show('today'));await q.click('#hero-cog');await q.setInputFiles('#bk-file',path);await q.waitForTimeout(1800);
 await q.waitForLoadState();await q.waitForTimeout(800);
 console.log('restored workouts:',await q.evaluate(()=>D.workouts.length),'checkins:',await q.evaluate(()=>D.checkins.length));
 console.log('errors:',errs);await b.close()})();

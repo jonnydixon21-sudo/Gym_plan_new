@@ -30,6 +30,6 @@ console.log('buyText:',await p.evaluate(()=>{const k=Object.keys(F).find(k=>F[k]
 await p.reload();await p.waitForTimeout(900);await p.evaluate(()=>goTo('food'));await p.evaluate(()=>goTo('food','meals'));
 console.log('after reload foods:',await p.$eval('#myfoods',e=>e.innerText.replace(/\n/g,' | ')));
 // delete refused while used
-await p.evaluate(()=>{goTo('settings');document.getElementById('hidden-card').open=true});await p.click('[data-fedit]');await p.click('#fov-del');console.log('del msg:',await p.$eval('#fov-err',e=>e.textContent));
+await p.evaluate(()=>{goTo('nutrition','foods')});await p.click('[data-fedit]');await p.click('#fov-del');console.log('del msg:',await p.$eval('#fov-err',e=>e.textContent));
 await p.click('#fov-cancel');
 console.log('errors:',errs);await b.close()})();
