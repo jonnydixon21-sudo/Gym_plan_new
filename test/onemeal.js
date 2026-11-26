@@ -15,7 +15,8 @@ ok('off by default in the main app',!(await p.evaluate(()=>oneMealOn())));
 ok('copies kept while off',await count()===3,await count());
 const before=await snap();
 await p.evaluate(()=>show('nutrition','meals'));await p.waitForTimeout(300);
-await p.check('#om-on');await p.waitForTimeout(600);
+ok('switch hidden in the main copy',!(await p.$('#om-on')));
+await p.evaluate(async()=>{const P=planDoc();P.oneMeal=true;D.plan=P;await savePlan()});await p.waitForTimeout(600);
 ok('one saved copy',await count()===1,await count());
 const after=await snap();ok('every day plan eats exactly the same',JSON.stringify(before)===JSON.stringify(after));
 ok('off day uses its own portion',after.offT.some(x=>/Test chicken rice chicken250,basmati80/.test(x)),after.offT.slice(-1));
@@ -43,4 +44,8 @@ ok('kept after reload',(await snap()).offT.some(x=>/Test chicken rice chicken300
 // turning it off keeps each day's portions
 await p.evaluate(()=>show('nutrition','meals'));await p.waitForTimeout(300);const s3=await snap();await p.uncheck('#om-on');await p.waitForTimeout(500);
 ok('turning off changes no day',JSON.stringify(s3)===JSON.stringify(await snap()));
+// the blank trial copy shows the switch, on
+const t=await (await b.newContext({viewport:{width:390,height:844}})).newPage();t.on('pageerror',e=>errs.push(e.message));
+await t.goto('http://localhost:8795/index.html');await t.waitForTimeout(1200);await t.evaluate(()=>show('nutrition','meals'));await t.waitForTimeout(300);
+ok('trial copy shows the switch, on',await t.$eval('#om-on',e=>e.checked).catch(()=>false));
 console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();
