@@ -21,6 +21,8 @@ for(const [t,ks] of Object.entries(T)){
 // training summary
 await p.click('#tab-training');await p.waitForTimeout(300);
 const tr=await p.$eval('#hs-training',e=>e.innerText);ok('training summary',/next workout|done today/i.test(tr)&&/Last 7 days/.test(tr),tr.replace(/\n/g,' | ').slice(0,160));
+const key=await p.$eval('#hs-training .trkey',e=>e.innerText);ok('colour key under the week',/Gym/.test(key)&&/Run/.test(key)&&/Nothing logged/.test(key),key.replace(/\n/g,' '));
+await p.evaluate(()=>document.getElementById('hs-training').scrollIntoView());await p.screenshot({path:SH+'trkey.png'});
 const nu=await p.$('#hs-training [data-hubgo]');if(nu){await nu.click();await p.waitForTimeout(400);ok('next workout button opens Gym',await vis('#view-gym'))}
 // progress summary
 await p.click('#tab-progress');await p.waitForTimeout(300);const pr=await p.$eval('#hs-progress',e=>e.innerText);ok('weight on Progress home',/88\.\d/.test(pr)&&/kg\/week/.test(pr),pr.replace(/\n/g,' | ').slice(0,160));
