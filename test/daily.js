@@ -5,7 +5,7 @@ let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();
 await p.click('#tab-today');await p.waitForTimeout(200);
-const pos=await p.evaluate(()=>{const d=document.querySelector('[data-fold="basics"]'),m=document.getElementById('macro-card');return {inToday:!!d.closest('#sec-today'),before:m.contains(d)&&!!(d.compareDocumentPosition(document.getElementById('mbars'))&Node.DOCUMENT_POSITION_FOLLOWING),closed:!d.open,title:d.querySelector('summary').innerText.replace(/\n/g,' ')}});
+const pos=await p.evaluate(()=>{const d=document.querySelector('[data-fold="basics"]'),m=document.getElementById('macro-card');return {inToday:!!d.closest('#sec-today'),before:!m.contains(d)&&!!(d.compareDocumentPosition(document.getElementById('mbars'))&Node.DOCUMENT_POSITION_FOLLOWING),closed:!d.open,title:d.querySelector('summary').innerText.replace(/\n/g,' ')}});
 ok('Daily targets fold on Today above Macros',pos.inToday&&pos.before&&pos.closed&&/Daily targets/i.test(pos.title)&&/0\/4|\d\/4/.test(pos.title),JSON.stringify(pos));
 ok('gone from Progress',await p.evaluate(()=>!document.querySelector('#sec-progress #habits')&&!/Basics/.test(document.getElementById('sec-progress').innerText)));
 await p.click('[data-fold="basics"] summary');await p.waitForTimeout(200);

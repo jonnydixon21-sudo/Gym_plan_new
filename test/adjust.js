@@ -31,5 +31,5 @@ for(const [k,id] of Object.entries(panes)){await p.evaluate(k=>goTo(k),k);await 
     return cards.filter(c=>c.closest('#'+id)||c.contains(el)||el.contains(c)).map(c=>c.tagName==='DETAILS'?'D:'+(c.querySelector('summary')||{}).innerText.split('\n')[0]+(c.open?'(open)':''):'C:'+((c.querySelector('h2')||{}).innerText||c.id||'card').slice(0,22))},id);
   console.log('   '+k+':',r.join(' | '))}
 await p.evaluate(()=>goTo('today'));const plain=await p.evaluate(()=>[...document.querySelectorAll('#view-today > .card, #view-today > details.card')].map(c=>c.tagName+':'+(c.id||((c.querySelector('h2')||{}).innerText||'').slice(0,14))));
-ok('Today: macros and plan stay open cards, others are dropdowns',plain.includes('DIV:macro-card')&&plain.some(x=>/^DIV:Today's plan/i.test(x))&&await p.evaluate(()=>document.querySelectorAll('#macro-card>details.fold.glance').length===3),plain.join(' '));
+ok('Today: macros and plan stay open cards, others are dropdowns',plain.includes('DIV:macro-card')&&plain.some(x=>/^DIV:Today's plan/i.test(x))&&await p.evaluate(()=>document.querySelectorAll('#daily-tabs>details.fold.glance').length===3),plain.join(' '));
 console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();
