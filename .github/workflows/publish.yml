@@ -27,7 +27,9 @@ jobs:
           T: ${{ secrets.DEPLOY_TOKEN }}
           MSG: ${{ github.event.head_commit.message }}
           WHO: ${{ github.actor }}
+          AUTHOR: ${{ github.event.head_commit.author.name }}
         run: |
+          SUBJ="$(printf '%s' "${MSG:-Update app}" | head -n1)"; BY="${AUTHOR:-$WHO}"; CHANGED=0
           git config --global user.name "$WHO"; git config --global user.email "$WHO@users.noreply.github.com"
           for pair in "web:Gym-plan-v11.1" "web-trial:Gym-plan-blank"; do
             src="${pair%%:*}"; repo="${pair#*:}"
@@ -35,7 +37,18 @@ jobs:
             cp "$src"/* "/tmp/$repo"/
             echo "Built from jonnydixon21-sudo/Gym_plan_new@${GITHUB_SHA} by ${WHO}" > "/tmp/$repo/built-from.txt"
             cd "/tmp/$repo"
+            # the app itself changed: record what's new (shown in the app's update bar)
+            if [ -n "$(git status --porcelain index.html)" ]; then CHANGED=1
+              V="$(grep -o -m1 'const APP_VERSION="[^"]*"' index.html | sed 's/.*="//;s/"$//')"
+              jq -n --arg v "$V" --arg msg "$SUBJ" --arg by "$BY" --arg at "$(date -u +%FT%TZ)" '{v:$v,msg:$msg,by:$by,at:$at}' > whatsnew.json; fi
             if [ -z "$(git status --porcelain)" ]; then echo "$repo already up to date"; cd "$GITHUB_WORKSPACE"; continue; fi
             git add -A; git commit -q -m "${MSG:-Update app}" -m "From gym_plan_new@${GITHUB_SHA::7} by $WHO"; git push -q origin HEAD
             echo "$repo published"; cd "$GITHUB_WORKSPACE"
           done
+          echo "changed=$CHANGED" >> "$GITHUB_ENV"; echo "SUBJ=$SUBJ" >> "$GITHUB_ENV"; echo "BY=$BY" >> "$GITHUB_ENV"
+      # Push notification to everyone subscribed to the update topic in the ntfy app (Settings → About this copy → Get update alerts)
+      - name: Notify
+        if: steps.tok.outputs.ok == 'yes' && env.changed == '1'
+        run: |
+          curl -s -o /dev/null -H "Title: Gym app updated by $BY" -H "Tags: muscle" \
+            -d "${SUBJ%.}. Open the app and tap Update now." "https://ntfy.sh/gymplan-updates-02b3ba93cc" || true

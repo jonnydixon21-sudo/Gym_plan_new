@@ -8,7 +8,7 @@ Two people (Jonny = owner, Defty) edit this app with Claude. Pushing to `main` p
 3. Bump `APP_VERSION` in `www/index.html` (format `"26 Nov 2026 (f)"`: today's date, then a letter for the nth release that day). This is what shows the "update available" bar. The trial build prefixes it with `Trial · ` automatically – don't touch that.
 4. Add or update a test in `test/` for anything you change, and add new test names to `ALL` in `tools/test.sh`.
 5. Run `tools/test.sh`. Only continue if it ends with `ALL n TESTS PASSED`. Never push failing code.
-6. Commit with a plain-English message saying what changed for the user, then `git pull --rebase && git push`. If the rebase brings in someone else's change, rebuild and rerun the tests before pushing.
+6. Commit with a plain-English message saying what changed for the user (the first line is sent as a phone notification to both of you and shown in the app's update bar, so keep it short, e.g. "Rest timer: 90s default"), then `git pull --rebase && git push`. If the rebase brings in someone else's change, rebuild and rerun the tests before pushing.
 7. Check the "Publish app" run in Actions succeeded (`gh run list --workflow publish.yml -L 1`). If it warns that DEPLOY_TOKEN isn't set and you have push access to the deploy repos, run `tools/publish.sh "message"`. Pages can take a minute or two after that; if a Pages deploy fails with a 500, re-running it usually fixes it.
 
 ## Rules about the app
