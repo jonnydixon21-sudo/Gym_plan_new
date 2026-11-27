@@ -10,6 +10,9 @@ ok('both panels tucked away',!(await vis('#xadd'))&&!(await vis('#tadd'))&&await
 await p.click('#eat-plus');await p.waitForTimeout(150);ok('+ shows two choices',await vis('[data-eatopen="extra"]')&&await vis('[data-eatopen="tadd"]'));
 await p.locator('#eat-plus').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'eatplus.png'});
 await p.click('[data-eatopen="tadd"]');await p.waitForTimeout(150);ok('Add to today opens',await p.evaluate(()=>document.getElementById('tadd').open)&&await vis('#ta-save')&&!(await vis('#eat-pmenu')));
+ok('+ stays an x while the panel is open',await p.$eval('#eat-plus',e=>e.getAttribute('aria-expanded'))==='true');
+await p.click('#eat-plus');await p.waitForTimeout(150);ok('one press closes the panel and turns back to +',!(await vis('#tadd'))&&!(await vis('#eat-pmenu'))&&await p.$eval('#eat-plus',e=>e.getAttribute('aria-expanded'))==='false');
+ok('Log a run is in the menu, not under the plan',await p.evaluate(()=>!document.querySelector('#train-log [data-tlrun]')&&!!document.querySelector('#eat-pmenu [data-tlrun]')));
 await p.click('#eat-plus');await p.click('[data-eatopen="extra"]');await p.waitForTimeout(150);ok('Ate something opens, other closes',await vis('#pm-add')&&!(await p.evaluate(()=>document.getElementById('tadd').open)));
 // meal ×1.5
 const id=await p.evaluate(()=>{const s=document.getElementById('pm-meal');return [...s.options].map(o=>o.value).find(v=>v&&MEALS[v]&&MEALS[v].items.filter(([k,a])=>a>0&&pfNut(k)).length>=2)});

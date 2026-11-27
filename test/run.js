@@ -10,7 +10,7 @@ await p.screenshot({path:SH+'run-today.png',fullPage:true});
 // quick gym done
 console.log('after gym:',(await p.$eval('#train-log',e=>e.innerText)).replace(/\n/g,' | '),'| pill:',await p.$eval('#today-pill',e=>e.textContent));
 // run from today
-await p.click('[data-tlrun]');await p.fill('[data-rf="km"]','5.2');await p.fill('[data-rf="time"]','31:20');
+await p.click('#eat-plus');await p.click('[data-tlrun]');await p.fill('[data-rf="km"]','5.2');await p.fill('[data-rf="time"]','31:20');
 console.log('pace:',await p.$eval('#rf-pace',e=>e.textContent));
 await p.click('#rf-save');await p.waitForTimeout(400);
 console.log('after run:',(await p.$eval('#run-done',e=>e.innerText)).replace(/\n/g,' | '));

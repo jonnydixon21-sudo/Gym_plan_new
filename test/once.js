@@ -35,7 +35,7 @@ await p.evaluate(()=>goTo('run'));ok('Run tab lists it',(await p.$$eval('#run-ne
 await p.evaluate(()=>goTo('food'));await p.evaluate(d=>goPlan(d),days[0]);await p.click('#once-run summary');await p.selectOption('#on-kind','speed');await p.fill('#on-at','20:30');await p.fill('#on-label','');await p.click('#on-save');await p.waitForTimeout(400);
 await p.click('#tab-today');await p.waitForTimeout(200);
 ok('today shows a run added for today',/Speed run/.test(await p.$eval('#eat',e=>e.innerText)));
-await p.click('[data-tlrun]');await p.waitForTimeout(200);ok('log form opens as Speed',(await p.$eval('[data-rfk="speed"]',e=>e.getAttribute('aria-pressed')))==='true');await p.click('#rf-cancel');
+await p.click('#eat-plus');await p.click('[data-tlrun]');await p.waitForTimeout(200);ok('log form opens as Speed',(await p.$eval('[data-rfk="speed"]',e=>e.getAttribute('aria-pressed')))==='true');await p.click('#rf-cancel');
 // skip a usual run on a day that has one
 let withRun=null;for(const d of days.slice(1,8)){const x=await p.evaluate(d=>!!dayInfo(d).runUsual,d);if(x){withRun=d;break}}
 await p.evaluate(()=>goTo('food'));await p.evaluate(d=>goPlan(d),withRun);await p.waitForTimeout(200);console.log('   usual-run day',withRun,'status:',await status());
