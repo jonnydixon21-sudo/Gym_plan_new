@@ -30,8 +30,8 @@ const open=await p.$eval('details.lift[open]',e=>e.innerText.replace(/\n+/g,' | 
 ok('dashboard shows previous / latest / best / 1RM / sets',/Previous/.test(open)&&/Latest/.test(open)&&/Best ever/.test(open)&&/1RM|Best reps/.test(open)&&/in 28 days/.test(open));
 const pd=await p.evaluate(()=>{const r=liftReport(liftHistory()['neutral-grip lat pulldown']);return r.flags.map(f=>f[1]).join(' ')});ok('go-up suggests next weight',/65kg/.test(pd),pd);
 const vol=await p.$$eval('#vol-card .vrow',e=>e.map(x=>x.innerText.replace(/\n+/g,' | ')));console.log('   volume:',vol.slice(0,6));
-ok('volume rows with direct/indirect',vol.some(x=>/Back/.test(x)&&/direct/.test(x)&&/indirect/.test(x)));
-const back=await p.evaluate(()=>volumeIn(addDays(TODAY,-7),TODAY).g.Back);ok('quick-marked Back session counted from its plan',back.d>=10,JSON.stringify(back));
+ok('volume rows with direct/indirect',vol.some(x=>/Lats|Upper back/.test(x)&&/direct/.test(x)&&/indirect/.test(x)));
+const back=await p.evaluate(()=>{const g=volumeIn(addDays(TODAY,-7),TODAY).g;return {d:((g.Lats||{}).d||0)+((g['Upper back']||{}).d||0)}});ok('quick-marked Back session counted from its plan',back.d>=10,JSON.stringify(back));
 const bi=await p.evaluate(()=>volumeIn(addDays(TODAY,-7),TODAY).g.Biceps);ok('pulldown counts as indirect biceps, curls direct',bi.d===4&&bi.i>=2,JSON.stringify(bi));
 await p.click('#mt-edit');await p.fill('[data-mtmin="Chest"]','10');await p.fill('[data-mtmax="Chest"]','14');await p.click('#mt-edit');await p.waitForTimeout(300);
 ok('targets editable and saved',await p.evaluate(()=>mTarget('Chest'))===12);
@@ -40,14 +40,14 @@ ok('effort tables by sleep and shift',/By sleep/i.test(eff)&&/Under 6h sleep/.te
 await p.screenshot({path:SH+'lifts.png',fullPage:true});
 // readiness
 await p.click('#tab-training');await p.evaluate(()=>show('training','gym'));await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(300);const rd=await p.$eval('#ready-card',e=>e.innerText.replace(/\n+/g,' | '));console.log('   ready:',rd);
-ok('readiness shows fatigue and reasons',/Fatigue: (Moderate|High)/.test(rd)&&/Sleep averaging 5.5h/.test(rd)&&/Back/.test(rd));
+ok('readiness shows fatigue and reasons',/Fatigue: (Moderate|High)/.test(rd)&&/Sleep averaging 5.5h/.test(rd)&&/Lats|Upper back/.test(rd));
 await p.screenshot({path:SH+'ready.png'});
 // library: edit a guessed exercise
 await p.evaluate(()=>show('training','library'));await p.waitForTimeout(200);
 await p.click('#lib-new');await p.fill('#lib-name','Cable crunch');await p.selectOption('#lib-p','Core');await p.click('#lib-save');await p.waitForTimeout(300);
 ok('new exercise saved',await p.evaluate(()=>exInfo('Cable crunch').p==='Core'&&knownExercises().includes('Cable crunch')));
-await p.fill('#lib-q','hammer');await p.waitForTimeout(150);await p.click('[data-libedit="hammer curl"]');await p.click('[data-libs="Back"]');await p.click('#lib-save');await p.waitForTimeout(300);
-ok('edit adds indirect muscle',await p.evaluate(()=>exInfo('Hammer curl').s.includes('Back')&&exInfo('Hammer curl').src==='you'));
+await p.fill('#lib-q','hammer');await p.waitForTimeout(150);await p.click('[data-libedit="hammer curl"]');await p.click('[data-libs="Lats"]');await p.click('#lib-save');await p.waitForTimeout(300);
+ok('edit adds indirect muscle',await p.evaluate(()=>exInfo('Hammer curl').s.includes('Lats')&&exInfo('Hammer curl').src==='you'));
 await p.screenshot({path:SH+'library.png'});
 // live workout RIR + difficulty
 await p.evaluate(()=>show('training','gym'));await p.click('.tw button[data-tpl]');await p.click('#pv-start');await p.waitForTimeout(300);

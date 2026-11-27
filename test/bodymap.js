@@ -12,13 +12,13 @@ await p.evaluate(async()=>{const S=n=>Array(n).fill({kg:50,reps:10});
 await p.waitForTimeout(500);await p.evaluate(()=>goTo('gym'));await p.evaluate(()=>document.querySelectorAll('details[data-fold]').forEach(d=>d.open=true));await p.waitForTimeout(300);
 const mf=await p.evaluate(()=>{const m=muscleFatigue();return Object.fromEntries(Object.entries(m).map(([k,v])=>[k,Math.round(v.f*100)+'% '+v.st]))});
 if(scheme==='dark')console.log('   ',JSON.stringify(mf));
-ok(scheme+': back (main muscle today) is red',/Just trained/.test(mf.Back));
-ok(scheme+': biceps worked only as a secondary today is less fatigued than back',parseInt(mf.Biceps)<parseInt(mf.Back));
+ok(scheme+': lats (main muscle today) is red',/Just trained/.test(mf.Lats));
+ok(scheme+': biceps worked only as a secondary today is less fatigued than back',parseInt(mf.Biceps)<parseInt(mf.Lats));
 ok(scheme+': legs 5 days ago are rested',/Rested/.test(mf.Quads)&&/Rested/.test(mf.Hamstrings));
 ok(scheme+': never-trained calves rested',/Rested/.test(mf.Calves));
 ok(scheme+': body map drawn with coloured muscles',await p.$$eval('#ready-card .bodymap svg',e=>e.length)===2&&await p.$$eval('#ready-card [data-m]',e=>e.length)>=20);
 const rows=await p.$$eval('.mrow',e=>e.map(x=>x.innerText.replace(/\n+/g,' ')));if(scheme==='dark')console.log('   ',rows.slice(0,5));
-ok(scheme+': list sorted most fatigued first',/^Back/.test(rows[0]));
+ok(scheme+': list sorted most fatigued first',/^(Lats|Upper back)/.test(rows[0]));
 await p.locator('#ready-card').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'bodymap-'+scheme+'.png'});
 ok(scheme+': no page errors',!errs.length,errs.join());await p.close()}
 console.log('FAILS',fails);await b.close();process.exit(fails?1:0)})();

@@ -12,15 +12,16 @@ await p.evaluate(async()=>{const S=(n,kg=50,r=10)=>Array(n).fill(0).map(()=>({kg
   for(let i=0;i<10;i++)await saveCheckin(addDays(TODAY,-9+i),{weight:87.2+i*0.04});});
 await p.waitForTimeout(600);
 const g=n=>p.evaluate(n=>{const v=volumeIn(addDays(TODAY,-7),TODAY).g[n];return v?{d:v.d,i:v.i,ie:+v.ie.toFixed(2),eff:+effOf(v).toFixed(2),days:v.days.size}:null},n);
-const back=await g('Back'),traps=await g('Traps'),rear=await g('Side/rear delts'),bi=await g('Biceps'),tri=await g('Triceps');
-console.log('   Back',JSON.stringify(back),'Traps',JSON.stringify(traps),'Rear',JSON.stringify(rear),'Biceps',JSON.stringify(bi),'Triceps',JSON.stringify(tri));
-ok('direct back = row + pulldown sets',back.d===6);
-ok('traps: shrug direct + row 1/2 + pec deck 1/2',traps.d===4&&traps.ie===2.5,JSON.stringify(traps));
+const back=await g('Lats'),traps=await g('Upper back'),rear=await g('Side/rear delts'),bi=await g('Biceps'),tri=await g('Triceps');
+console.log('   Lats',JSON.stringify(back),'Upper back',JSON.stringify(traps),'Rear',JSON.stringify(rear),'Biceps',JSON.stringify(bi),'Triceps',JSON.stringify(tri));
+ok('lats: pulldown direct + row 1/2',back.d===3&&back.ie===1.5,JSON.stringify(back));
+ok('upper back: row + shrug direct, pec deck 1/2',traps.d===7&&traps.ie===1,JSON.stringify(traps));
+ok('no Back or Traps left',await p.evaluate(()=>!MGROUPS.includes('Back')&&!MGROUPS.includes('Traps')&&MGROUPS[0]==='Lats'&&MGROUPS[1]==='Upper back'));
 ok('rear delts: pec deck direct, row 1/2, pulldown 1/4',rear.d===2&&rear.ie===2.25,JSON.stringify(rear));
 ok('biceps direct + indirect from pulling',bi.d===3&&bi.ie===3);
 await p.evaluate(()=>goTo('lifts'));await p.waitForTimeout(300);
 const rows=await p.$$eval('#vol-card .vrow',e=>e.map(x=>x.innerText.replace(/\n+/g,' | ')));console.log('   rows:',rows.slice(0,5));
-ok('priority muscles first with ★',/^★ Back/.test(rows[0])&&/^★ Traps/.test(rows[1])&&/^★ Side\/rear delts/.test(rows[2]));
+ok('priority muscles first with ★',/^★ Lats/.test(rows[0])&&/^★ Upper back/.test(rows[1])&&/^★ Side\/rear delts/.test(rows[2]));
 ok('frequency and trend shown',rows.every(r=>/trained directly \d+× in 8 days/.test(r)));
 ok('too little / too much summary',/Could use more/.test(await p.$eval('#vol-card',e=>e.innerText)));
 await p.locator('#vol-card').scrollIntoViewIfNeeded();await p.screenshot({path:SH+'vol2.png'});
@@ -29,15 +30,15 @@ await p.selectOption('#vol-ind','1');await p.waitForTimeout(300);const bi2=await
 const rear2=await g('Side/rear delts');ok('exercise-specific weighting (pulldown 1/4) stays',rear2.ie===3+0.75,JSON.stringify(rear2));
 await p.selectOption('#vol-ind','0.5');await p.waitForTimeout(200);
 // targets edit
-await p.click('#mt-edit');await p.fill('[data-mtmin="Traps"]','6');await p.fill('[data-mtmax="Traps"]','9');await p.click('#mt-edit');await p.waitForTimeout(300);
-ok('targets range saved',await p.evaluate(()=>JSON.stringify(mRange('Traps'))==='{"min":6,"max":9,"pri":true}'));
+await p.click('#mt-edit');await p.fill('[data-mtmin="Upper back"]','6');await p.fill('[data-mtmax="Upper back"]','9');await p.click('#mt-edit');await p.waitForTimeout(300);
+ok('targets range saved',await p.evaluate(()=>JSON.stringify(mRange('Upper back'))==='{"min":6,"max":9,"pri":true}'));
 // library weighting for hammer curl -> Back 0.25
-await p.evaluate(()=>goTo('library'));await p.fill('#lib-q','hammer');await p.waitForTimeout(150);await p.click('[data-libedit="hammer curl"]');await p.click('[data-libs="Back"]');await p.waitForTimeout(100);
-await p.selectOption('[data-libw="Back"]','0.25');await p.click('#lib-save');await p.waitForTimeout(300);
-ok('per-exercise weighting saved',await p.evaluate(()=>exInfo('Hammer curl').w.Back===0.25),await p.evaluate(()=>JSON.stringify(exInfo('Hammer curl'))));
-ok('library shows weights',/Also: Back 0.25/.test(await p.$eval('#lib-list',e=>e.innerText)));
+await p.evaluate(()=>goTo('library'));await p.fill('#lib-q','hammer');await p.waitForTimeout(150);await p.click('[data-libedit="hammer curl"]');await p.click('[data-libs="Lats"]');await p.waitForTimeout(100);
+await p.selectOption('[data-libw="Lats"]','0.25');await p.click('#lib-save');await p.waitForTimeout(300);
+ok('per-exercise weighting saved',await p.evaluate(()=>exInfo('Hammer curl').w.Lats===0.25),await p.evaluate(()=>JSON.stringify(exInfo('Hammer curl'))));
+ok('library shows weights',/Also: Lats 0.25/.test(await p.$eval('#lib-list',e=>e.innerText)));
 // body map traps
-await p.evaluate(()=>goTo('gym'));ok('traps on body map',await p.$$eval('[data-m="Traps"]',e=>e.length)>=2);
+await p.evaluate(()=>goTo('gym'));ok('upper back and lats on body map',await p.$$eval('[data-m="Upper back"]',e=>e.length)>=2&&await p.$$eval('[data-m="Lats"]',e=>e.length)>=2);
 // goals
 await p.evaluate(()=>goTo('body'));await p.waitForTimeout(200);
 ok('default 93kg goal is there',/Bulk to 93kg/.test(await p.textContent('#goals-body')));

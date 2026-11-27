@@ -26,7 +26,7 @@ await p.evaluate(()=>{document.querySelector('.leavebox').open=true});await p.fi
 ok('leave booked 3 days',await p.evaluate(a=>[0,1,2].every(i=>{const x=dayInfo(addDays(a,i));return x.ot==='leave'&&x.label==='Annual leave'&&(x.slot==='off'||x.slot==='off1')&&!rowsFor(x).some(r=>r[1]==='work')}),d1),await p.textContent('#lv-msg'));
 ok('bar shows leave',await p.evaluate(a=>{const b=document.querySelector(`.rd[data-rd="${a}"]`);return b&&b.classList.contains('k-leave')&&/Leave/.test(b.innerText)},d1));
 await p.screenshot({path:SH+'leave.png'});
-await p.click('[data-rv="month"]');await p.waitForTimeout(200);ok('month shows leave',await p.evaluate(()=>document.querySelectorAll('#rota-month .mc.k-leave').length===3));
+await p.click('[data-rv="month"]');await p.waitForTimeout(200);ok('month shows leave',await p.evaluate(a=>{const n=[0,1,2].filter(i=>addDays(a,i).slice(0,7)===TODAY.slice(0,7)).length;return document.querySelectorAll('#rota-month .mc.k-leave').length===n},d1));
 await p.click('[data-rv="personal"]');await p.evaluate(()=>{document.querySelector('.leavebox').open=true});await p.fill('#lv-from',d1);await p.fill('#lv-to',d2);await p.click('#lv-clear');await p.waitForTimeout(600);
 ok('leave cleared',await p.evaluate(a=>dayInfo(a).ot!=='leave',d1));
 // night helper rows

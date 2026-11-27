@@ -9,7 +9,7 @@ export SHOTS="${SHOTS:-/tmp/gym-shots/}"; mkdir -p "$SHOTS"
 bash tools/build.sh >/dev/null || { echo "BUILD FAILED"; exit 1; }
 serve(){ curl -s -o /dev/null "http://localhost:$1/index.html" || { setsid nohup python3 -m http.server "$1" --directory "$2" >/dev/null 2>&1 & sleep 1; }; }
 serve 8791 www; serve 8793 web; serve 8795 web-trial
-ALL="smoke trsections onemeal flow prep sg edit features plan run newfood twins rmmeal today_sync2 barcode settings v13 notes shop supps once meals_check zoom nav analytics bodymap session importx colours extras rota2 weektot plan3 daily setflags batchA batchB profile splitvol inout pvmus swap2 rugby restalert todayadd summary exac splitdetail rename dropset edauto pace macrofit calendar rebal autoadj swapfix sugkg trialupd trialmeals f3 adjust offline vol2 fitstuck nutnav hubs"
+ALL="smoke trsections onemeal flow prep sg edit features plan run newfood twins rmmeal today_sync2 barcode settings v13 notes shop supps once meals_check zoom nav analytics bodymap session importx colours extras rota2 weektot plan3 daily setflags batchA batchB profile splitvol inout pvmus swap2 rugby restalert todayadd summary exac splitdetail rename dropset edauto pace macrofit calendar rebal autoadj swapfix sugkg trialupd trialmeals f3 adjust offline vol2 fitstuck nutnav hubs lats wback"
 LIST="${*:-$ALL}"; bad=0; n=0
 for t in $LIST; do n=$((n+1))
   out=$(timeout 150 node "test/$t.js" 2>&1); code=$?

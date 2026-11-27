@@ -8,7 +8,7 @@ await p.goto('http://localhost:8791/index.html');await p.waitForTimeout(1000);co
 // seed an old check-in with a waist so migration runs
 await p.evaluate(async()=>{await db.doc('checkins/2026-11-01').set({date:'2026-11-01',waist:84.5,energy:4,photos:[]});await db.doc('checkins/2026-11-08').set({date:'2026-11-08',waist:85.0,photos:[]})});await p.waitForTimeout(600);
 await p.click('#tab-schedule');await p.waitForTimeout(200);
-const chips=await p.$$eval('#hub-schedule [data-sub]',e=>e.map(x=>x.querySelector('b').innerText.trim()).join('|'));ok('schedule tiles',chips==='Rota|Plan your days|Plan your runs',chips);
+const chips=await p.$$eval('#hub-schedule [data-sub]',e=>e.map(x=>x.querySelector('b').innerText.trim()).join('|'));ok('schedule tiles',chips==='My weeks|Plan your days|Plan your runs',chips);
 await p.click('#tab-nutrition');const nch=await p.$$eval('#hub-nutrition [data-sub]',e=>e.map(x=>x.innerText.trim()).join('|'));ok('Shopping tile',nch.includes('Shopping'),nch);
 await p.evaluate(()=>goTo('nutrition','shop'));await p.waitForTimeout(150);ok('Shopping list title',/Shopping list/.test(await p.textContent('#shop-title')),await p.textContent('#shop-title'));
 // run plan boxes

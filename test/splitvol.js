@@ -11,7 +11,7 @@ const V=await p.evaluate(()=>{const v=splitVolume();return {N:v.N,perWeek:v.perW
 ok('generic groups only',V.groups.every(g=>["Chest","Back","Shoulders","Biceps","Triceps","Quads","Hamstrings","Glutes","Calves","Adductors","Core"].includes(g)),V.groups.join());
 ok('8-day cycle -> per week',Math.abs(V.perWeek-7*7/8)<0.01||V.perWeek>0,String(V.perWeek));
 // independent check of Back direct sets
-const chk=await p.evaluate(()=>{let d=0;ORDER.forEach(t=>tplOf(t).ex.forEach(e=>{const i=exInfo(swapFor(e.name)||e.name);if(i&&(i.p==='Back'||i.p==='Traps'))d+=e.groups.reduce((a,g)=>a+ +g[0],0)}));return {d,got:splitVolume().m.Back.d}});
+const chk=await p.evaluate(()=>{let d=0;ORDER.forEach(t=>tplOf(t).ex.forEach(e=>{const i=exInfo(swapFor(e.name)||e.name);if(i&&(i.p==='Lats'||i.p==='Upper back'))d+=e.groups.reduce((a,g)=>a+ +g[0],0)}));return {d,got:splitVolume().m.Back.d}});
 ok('back direct sets add up',chk.d===chk.got,JSON.stringify(chk));
 const txt=await p.evaluate(()=>document.getElementById('sv-body').innerText.replace(/\n/g,' | '));console.log('   ',txt.slice(0,600));
 ok('shows per 7 days with targets and sources',/Per 7 days/.test(txt)&&/target \d+–\d+/.test(txt)&&/Back \| [\d.]+ sets/.test(txt));

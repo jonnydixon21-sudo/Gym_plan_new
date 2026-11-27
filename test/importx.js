@@ -14,7 +14,7 @@ await p.screenshot({path:SP+'import.png',fullPage:false});
 await p.click('#imp-go');await p.waitForTimeout(800);
 const r=await p.evaluate(()=>({lib:['Lat Pulldown (Cable)','Incline Bench Press (Dumbbell)','Hip Thrust (Barbell)'].map(n=>exInfo(n)&&exInfo(n).p),w:D.workouts.filter(w=>w.source==='import').map(w=>w.date+' '+w.title+' '+w.exercises.map(e=>e.name+':'+e.sets.map(s=>s.kg+'x'+s.reps).join(',')).join(' / '))}));
 console.log('   result:',JSON.stringify(r));
-ok('exercises added with muscles',r.lib.join()==='Back,Chest,Glutes');
+ok('exercises added with muscles',r.lib.join()==='Lats,Chest,Glutes');
 ok('history imported without warm-ups',r.w.length===2&&r.w.some(x=>/2026-11-03 Upper Lat Pulldown \(Cable\):62.5x9,62.5x8/.test(x)));
 ok('message shown',/Added 3 exercises and 2 workouts/.test(await p.$eval('#lib-imp-msg',e=>e.textContent)));
 ok('lift dashboard picks them up',await p.evaluate(()=>!!liftHistory()['lat pulldown (cable)']));
