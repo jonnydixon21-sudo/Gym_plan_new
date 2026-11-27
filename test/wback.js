@@ -37,6 +37,6 @@ const dt=await p.$$eval('#hs-schedule .scdate',e=>e.map(x=>x.innerText.replace(/
 await p.screenshot({path:SH+'sched-dates.png'});
 ok('tile says My weeks',/My weeks/.test(await p.$eval('#hub-schedule',e=>e.innerText)));
 // heading style option gone
-await p.click('#tab-today');await p.click('#hero-cog');await p.waitForTimeout(200);ok('no heading style option',!(await p.$('#hf-chips'))&&!/Heading style/i.test(await p.$eval('#view-settings',e=>e.innerText)));
+await p.click('#tab-today');await p.click('#hero-cog');await p.waitForTimeout(200);ok('no heading style option',!(await p.$('#hf-chips')&&await p.isVisible('#hf-chips'))&&!/Heading style/i.test(await p.$eval('#view-settings',e=>e.innerText)));
 ok('sport headings on',await p.evaluate(()=>document.documentElement.dataset.hfont==='sport'));
 console.log('errors:',JSON.stringify(errs.slice(0,5)));console.log('FAILS',fails);await b.close()})();

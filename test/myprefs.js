@@ -1,0 +1,38 @@
+const { chromium } = require('playwright');
+const SH=(process.env.SHOTS||'/tmp/gym-shots/');
+let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n+(x!==undefined?' -> '+x:''))};
+(async()=>{const b=await chromium.launch();const errs=[];
+const open=async port=>{const p=await (await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2})).newPage();p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});p.on('dialog',d=>d.accept());
+  await p.goto(`http://localhost:${port}/index.html`);await p.waitForTimeout(1000);
+  await p.evaluate(()=>{L.profile=L.profile||{name:'Test',mode:'cut',startDate:TODAY,startWeight:90,goalWeight:85,units:{w:'kg',l:'in'}};L.trialMealsFixed=1;saveL()});await p.reload();await p.waitForTimeout(1200);
+  const vx=await p.$('#vid-x');if(vx&&await vx.isVisible())await vx.click();return p};
+const vis=(p,sel)=>p.evaluate(s=>{const e=document.querySelector(s);if(!e)return false;let x=e;while(x){if(x.hidden)return false;x=x.parentElement}return true},sel);
+// main copy: unchanged
+const m=await open(8791);
+ok('main: no 75/80% zoom',!(await vis(m,'[data-z="0.75"]'))&&!(await vis(m,'[data-z="0.8"]')));
+ok('main: no heading style',!(await vis(m,'#hf-chips')));
+ok('main: sport headings',await m.evaluate(()=>document.documentElement.dataset.hfont==='sport'));
+ok('main: calories burned box still there',await vis(m,'#a-burn'));
+await m.evaluate(()=>show('progress','body'));await m.waitForTimeout(400);ok('main: eaten vs burned card still there',!(await m.$eval('#io-card',e=>e.hidden)));
+// trial copy
+const p=await open(8795);
+ok('trial: calories burned box hidden',!(await vis(p,'#a-burn')));
+ok('trial: burned note hidden',!(await vis(p,'#a-burn-n')));
+await p.evaluate(()=>show('progress','body'));await p.waitForTimeout(400);
+ok('trial: eaten vs burned card hidden',await p.$eval('#io-card',e=>e.hidden));
+ok('trial: no Calories burned stat',!/Calories burned/.test(await p.evaluate(()=>document.getElementById('sec-progress').innerText)));
+await p.evaluate(()=>show('settings'));await p.waitForTimeout(400);await p.evaluate(()=>document.querySelectorAll('#view-settings details').forEach(d=>d.open=true));await p.waitForTimeout(200);
+ok('trial: 75% and 80% zoom shown',await p.isVisible('[data-z="0.75"]')&&await p.isVisible('[data-z="0.8"]'));
+ok('trial: heading style shown',await p.isVisible('#hf-chips'));
+ok('trial: burned switch off',!(await p.$eval('#burn-on',e=>e.checked)));
+await p.$eval('#zoom-chips',e=>e.scrollIntoView());await p.screenshot({path:SH+'myprefs.png'});
+await p.click('[data-hf="standard"]');await p.waitForTimeout(200);
+ok('trial: standard headings',await p.evaluate(()=>document.documentElement.dataset.hfont==='standard'&&getComputedStyle(document.querySelector('h2')).fontFamily.indexOf('Barlow')<0));
+await p.click('[data-z="0.8"]');await p.waitForTimeout(300);ok('trial: 80% zoom saved',await p.evaluate(()=>L.zoom===0.8));
+await p.click('[data-z="0.75"]');await p.waitForTimeout(300);ok('trial: 75% zoom saved',await p.evaluate(()=>L.zoom===0.75&&document.querySelector('[data-z="0.75"]').getAttribute('aria-pressed')==='true'));
+await p.check('#burn-on');await p.waitForTimeout(300);
+ok('trial: burned can be turned back on',!(await p.$eval('#a-burn-f',e=>e.hidden))&&!(await p.$eval('#io-card',e=>e.hidden)));
+await p.reload();await p.waitForTimeout(1200);
+ok('trial: choices kept after reload',await p.evaluate(()=>document.documentElement.dataset.hfont==='standard'&&L.zoom===0.75&&burnOn()));
+await p.evaluate(()=>{L.zoom=1;saveL()});
+console.log('errors',errs,'FAILS',fails);await b.close();process.exit(fails||errs.length?1:0)})();
