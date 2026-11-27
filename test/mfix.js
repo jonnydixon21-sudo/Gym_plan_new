@@ -5,7 +5,8 @@ let fails=0;const ok=(n,c,x)=>{if(!c)fails++;console.log((c?'PASS':'FAIL')+' '+n
 const errs=[];
 // main copy: no switch
 const m=await ctx.newPage();m.on('pageerror',e=>errs.push(e.message));await m.goto('http://localhost:8791/index.html');await m.waitForTimeout(1000);
-await m.evaluate(()=>show('nutrition','meals'));await m.waitForTimeout(300);ok('main copy has no fixed switch',!(await m.$('[data-mfix]')));
+await m.evaluate(()=>show('nutrition','meals'));await m.waitForTimeout(300);ok('main copy shows the fixed switch too',!!(await m.$('[data-mfix]')));
+ok('main copy: overnight oats shows ticked',await m.$eval('[data-mfix="oor"]',e=>e.checked).catch(()=>'no oor card'));
 ok('overnight oats still fixed by default',await m.evaluate(()=>noScale('oor')&&noScale('n_oo')));
 // trial copy
 const p=await ctx.newPage();p.on('pageerror',e=>errs.push(e.message));p.on('console',x=>{if(x.type()==='error')errs.push(x.text())});p.on('dialog',d=>d.accept());
