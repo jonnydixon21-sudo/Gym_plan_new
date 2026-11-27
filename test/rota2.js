@@ -89,7 +89,7 @@ await p.click('[data-pdn="0"]');await p.waitForTimeout(150);ok('tap still moves 
 // Today: gym row gone, run button at the bottom next to ate something
 await p.evaluate(()=>goTo('today'));await p.waitForTimeout(200);
 ok('no gym row on today',await p.evaluate(()=>!document.querySelector('[data-tlg]')&&!/Mark gym session done/.test(document.getElementById('sec-today').innerText)));
-ok('run button beside ate-something',await p.evaluate(()=>{const f=document.querySelector('.eatfoot');const b=f&&f.querySelector('[data-tlrun]'),d=f&&f.querySelector('details.extra');if(!b||!d)return false;const rb=b.getBoundingClientRect(),rd=d.getBoundingClientRect();return Math.abs(rb.top-rd.top)<30&&rb.left>rd.left}));
+ok('run button under the + in Today\'s plan',await p.evaluate(()=>{const f=document.querySelector('.eatfoot');const b=f&&f.querySelector('[data-tlrun]'),pl=document.getElementById('eat-plus');return !!b&&b.checkVisibility()&&b.getBoundingClientRect().top>pl.getBoundingClientRect().top}));
 await p.evaluate(()=>document.querySelector('.eatfoot').scrollIntoView({block:'center'}));await p.screenshot({path:SH+'today-foot.png'});
 // dark mode screenshot of month
 await p.emulateMedia({colorScheme:'dark'});await p.evaluate(()=>goTo('schedule','shifts'));await p.click('[data-rv="month"]');await p.waitForTimeout(200);await p.screenshot({path:SH+'rota-month-dark.png'});
